@@ -1,0 +1,17 @@
+name: computer-vision
+channels:
+  - conda-forge
+dependencies:
+  - python=3.12
+  - opencv
+  - pytorch
+  - torchvision
+  - qt-main
+  - fontconfig
+  - freetype
+  - libpng
+  - numpy
+  - pillow
+  - transformers
+  - pytorch
+  - pytorch-cuda
