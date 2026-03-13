@@ -57,6 +57,8 @@ Alternative (pip):
 pip install -r requirements.txt
 ```
 
+---
+
 ## Running the prototype
 | Key | Action                  |
 |-----|-------------------------|
@@ -64,6 +66,8 @@ pip install -r requirements.txt
 | c   | clear reference         |
 | s   | save frame              |
 | q   | quit                    |
+
+---
 
 ## Current limitations
 
@@ -74,3 +78,9 @@ Limitations include:
 - no localization of anomalies
 - sensitivity to lighting and camera motion
 - threshold chosen empirically
+
+---
+
+## License
+
+This project is licensed under the terms of the MIT license.
