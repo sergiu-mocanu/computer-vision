@@ -1,7 +1,7 @@
 import os
 import time
 from collections import deque
-from typing import Optional
+from typing import Optional, Tuple
 
 import cv2
 import numpy as np
@@ -9,6 +9,7 @@ import torch
 import torch.nn.functional as F
 from PIL import Image
 from transformers import AutoImageProcessor, AutoModel
+from pathlib import Path
 
 
 MODEL_NAME = 'facebook/dinov2-base'
@@ -16,9 +17,13 @@ NORMAL_FRAMES_TARGET = 50
 ANOMALY_THRESHOLD = 0.12
 FRAME_STRIDE = 2
 DEVICE = 'cuda' if torch.cuda.is_available() else 'cpu'
-IMAGE_SAVE_PATH = './saved_images/'
+HOME_PATH = Path.home()
 
-print(torch.cuda.get_device_name())
+
+def reduce_res(frame_bgr: np.ndarray, new_res: Tuple[int, int] = (224, 224)) -> np.ndarray:
+    """Reduce image resolution to save computational resources."""
+    return cv2.resize(frame_bgr, new_res)
+
 
 def bgr_to_pil(frame_bgr: np.ndarray) -> Image.Image:
     """Converts a BGR image to PIL Image (red, green, blue)."""
@@ -42,8 +47,10 @@ class DinoEmbedder:
 
     @torch.inference_mode()
     def embed(self, frame_bgr: np.ndarray) -> torch.Tensor:
+        frame_small = reduce_res(frame_bgr)
+
         """Convert one webcam frame into an embedding."""
-        image = bgr_to_pil(frame_bgr)
+        image = bgr_to_pil(frame_small)
 
         inputs = self.processor(images=image, return_tensors="pt")
 
@@ -114,7 +121,7 @@ def main() -> None:
 
     frame_index = 0
     last_infer_ms = 0.0
-    current_score = None
+    prev_gray = None
 
     while True:
         # Read one frame from webcam
@@ -138,10 +145,15 @@ def main() -> None:
             print('Reference cleared')
 
         if key == ord('s'):
-            filename = f'snapshot_{int(time.time())}.jpg'
-            filepath = os.path.join(IMAGE_SAVE_PATH, filename)
-            cv2.imwrite(filepath, frame)
-            print(f'Saved {filepath}')
+            file_name = f'snapshot_{int(time.time())}.jpg'
+            folder_path = os.path.join(HOME_PATH, 'com-vis-images')
+
+            if not os.path.exists(folder_path):
+                os.makedirs(folder_path)
+            file_path = os.path.join(folder_path, file_name)
+
+            cv2.imwrite(file_path, frame)
+            print(f'Saved {file_path}')
 
         # REFERENCE COLLECTION PHASE
         if key == ord('r'):
@@ -179,6 +191,19 @@ def main() -> None:
 
         # LIVE ANOMALY SCORING
         if reference_embedding is not None and frame_index % FRAME_STRIDE == 0:
+            # Skip inference if image changes are negligible
+            gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+
+            if prev_gray is not None:
+                diff = cv2.absdiff(gray, prev_gray)
+                motion_score = diff.mean()
+
+                # Skip model inference if scene barely changed
+                if motion_score < 2.2:
+                    continue
+
+            prev_gray = gray
+
             start = time.perf_counter()
 
             # Extract visual features from current frame
@@ -209,6 +234,7 @@ def main() -> None:
                 draw_text(display, f'Stats: {status}', y=140)
                 draw_text(display, f'Anomaly score: {smoothed_score:.4f}', y=170)
                 draw_text(display, f'Threshold: {ANOMALY_THRESHOLD:.4f}', y=200)
+                draw_text(display, f'Inference time: {last_infer_ms:.1f} ms', y=250)
                 draw_text(display, f'Inference time: {last_infer_ms:.1f} ms', y=250)
 
         cv2.imshow('DINOv2 Webcam Anomaly Prototype', display)
