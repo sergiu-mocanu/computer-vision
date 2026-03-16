@@ -57,6 +57,22 @@ Alternative (pip):
 pip install -r requirements.txt
 ```
 
+The two are intended to provide similar runtime capability, but the conda environment is the reference setup for native 
+CV dependencies.
+
+### GPU support (optional)
+
+For GPU acceleration, install PyTorch with CUDA support using the official selector:
+
+https://pytorch.org/get-started/locally/
+
+Select:
+- Linux
+- pip or conda
+- CUDA version compatible with your system
+
+If CUDA is not available, the prototype will run on CPU (slower but functional).
+
 ---
 
 ## Running the prototype
