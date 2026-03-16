@@ -1,1 +1,3 @@
 .idea
+**/__pycache__/
+./webcam_dino_anomaly.py
