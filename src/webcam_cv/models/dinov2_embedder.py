@@ -40,15 +40,19 @@ class DinoV2Embedder(BaseEmbedder):
 
 
     @torch.inference_mode()
-    def embed(self, frame_bgr: np.ndarray) -> torch.Tensor:
+    def embed(self, frame_bgr: np.ndarray, reduce_img_size: bool = True) -> torch.Tensor:
         """Extract a normalized global embedding from a frame.
 
         The frame is resized, preprocessed with the model image processor,
         and passed through the transformer. The CLS token is used as the
         global image representation.
         """
-        frame_small = reduce_res(frame_bgr)
-        image = bgr_2_pil(frame_small)
+        if reduce_img_size:
+            frame = reduce_res(frame_bgr)
+        else:
+            frame = frame_bgr
+
+        image = bgr_2_pil(frame)
 
         inputs = self.processor(images=image, return_tensors="pt")
         pixel_values = inputs['pixel_values'].to(self.device)

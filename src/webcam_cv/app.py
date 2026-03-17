@@ -30,7 +30,7 @@ def run():
     embedder = create_embedder(config)
     scorer = AnomalyScorer(config.anomaly_threshold)
 
-    print(f'Using device: {config.device}')
+    print(f'Using device: {config.device.upper()}')
     if config.gpu_name is not None:
         print(f'Using GPU: {config.gpu_name}')
 
@@ -130,7 +130,7 @@ def run():
         # --------------------------------------------------------
         # Render overlay and display frame
         # --------------------------------------------------------
-        draw_text(display, f'Device: {config.device}', 30)
+        draw_text(display, f'Device: {config.device.upper()}', 30)
         draw_text(display, f'Model: {embedder.model_name}', 60)
 
         if scorer.reference_embedding is None:

@@ -8,6 +8,6 @@ class BaseEmbedder(ABC):
     model_name: str = None
 
     @abstractmethod
-    def embed(self, frame_bgr: np.ndarray) -> torch.Tensor:
+    def embed(self, frame_bgr: np.ndarray, reduce_img_size: bool) -> torch.Tensor:
         """Compute an embedding vector from an input frame."""
         pass

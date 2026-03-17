@@ -9,7 +9,7 @@ def bgr_2_pil(frame_bgr: np.ndarray) -> Image.Image:
     return Image.fromarray(frame_rgb)
 
 
-def reduce_res(frame: np.ndarray, max_width: int = 640) -> np.ndarray:
+def reduce_res(frame: np.ndarray, max_width: int = 384) -> np.ndarray:
     """Reduce image resolution while keeping the aspect ratio.
 
     Reducing the resolution saves computational resources.
