@@ -1,18 +1,30 @@
 import cv2
 from PIL import Image
 import numpy as np
-from typing import Tuple
 
 
-def bgr_to_pil(frame_bgr: np.ndarray) -> Image.Image:
+def bgr_2_pil(frame_bgr: np.ndarray) -> Image.Image:
     """Converts a BGR image to PIL Image (red, green, blue)."""
     frame_rgb = cv2.cvtColor(frame_bgr, cv2.COLOR_BGR2RGB)
     return Image.fromarray(frame_rgb)
 
 
-def reduce_res(frame_bgr: np.ndarray, new_res: Tuple[int, int] = (224, 224)) -> np.ndarray:
-    """Reduce image resolution. Useful for saving computational resources."""
-    return cv2.resize(frame_bgr, new_res)
+def reduce_res(frame: np.ndarray, max_width: int = 640) -> np.ndarray:
+    """Reduce image resolution while keeping the aspect ratio.
+
+    Reducing the resolution saves computational resources.
+    Keeping the aspect ratio avoid distortion in object proportions.
+    """
+    h, w = frame.shape[:2]
+
+    if w <= max_width:
+        return frame
+
+    scale = max_width / w
+    new_w = int(w * scale)
+    new_h = int(h * scale)
+
+    return cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
 
 def is_image_unchanged(current_frame: np.ndarray, previous_frame: np.ndarray, threshold: int = 2) -> bool:
