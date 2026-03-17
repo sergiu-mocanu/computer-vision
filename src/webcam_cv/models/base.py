@@ -5,6 +5,7 @@ import numpy as np
 
 class BaseEmbedder(ABC):
     """Abstract interface for models that convert images into feature embeddings."""
+    model_name: str = None
 
     @abstractmethod
     def embed(self, frame_bgr: np.ndarray) -> torch.Tensor:

@@ -5,10 +5,10 @@ import cv2
 
 from webcam_cv.camera import Camera
 from webcam_cv.utils.image import is_image_unchanged
-from webcam_cv.config import AppConfig
 from webcam_cv.display import draw_text, show
-from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.anomaly.scorer import AnomalyScorer
+from webcam_cv.config import AppConfig
+from webcam_cv.models.factory import create_embedder
 
 
 def run():
@@ -27,7 +27,7 @@ def run():
     config = AppConfig()
 
     camera = Camera()
-    embedder = DinoV2Embedder(config.model_name, config.device)
+    embedder = create_embedder(config)
     scorer = AnomalyScorer(config.anomaly_threshold)
 
     print(f'Using device: {config.device}')
@@ -66,6 +66,7 @@ def run():
 
         if key == ord('c'):
             scorer.clear()
+            smoothed_score = None
             print('Reference cleared')
 
         if key == ord('s'):
@@ -124,13 +125,13 @@ def run():
             start = time.perf_counter()
             embedding = embedder.embed(frame)
             smoothed_score = scorer.score(embedding)
-            last_infer_ms = time.perf_counter() - start
+            last_infer_ms = (time.perf_counter() - start) * 1000
 
         # --------------------------------------------------------
         # Render overlay and display frame
         # --------------------------------------------------------
         draw_text(display, f'Device: {config.device}', 30)
-        draw_text(display, f'Model: {config.model_name}', 60)
+        draw_text(display, f'Model: {embedder.model_name}', 60)
 
         if scorer.reference_embedding is None:
             draw_text(display, 'Status: no reference yet (press r)', 100)
@@ -142,7 +143,7 @@ def run():
                 draw_text(display, f'Status: {status}', 140)
                 draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 170)
                 draw_text(display, f'Threshold: {config.anomaly_threshold:.4f}', 200)
-                draw_text(display, f'Inference: {last_infer_ms:.3f} ms', 230)
+                draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 230)
 
         show(config.window_name, display)
 

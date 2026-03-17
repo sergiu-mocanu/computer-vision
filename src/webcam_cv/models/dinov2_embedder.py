@@ -4,18 +4,40 @@ import torch.nn.functional as F
 from transformers import AutoImageProcessor, AutoModel
 
 from webcam_cv.models.base import BaseEmbedder
-from webcam_cv.utils.image import bgr_to_pil, reduce_res
+from webcam_cv.utils.image import bgr_2_pil, reduce_res
+
+
+DINOv2_MODEL_NAMES = {
+    'small': 'facebook/dinov2-small',
+    'base': 'facebook/dinov2-base',
+    'large': 'facebook/dinov2-large',
+    'giant': 'facebook/dinov2-giant',
+}
 
 
 class DinoV2Embedder(BaseEmbedder):
     """Vision transformer embedder using the DINOv2 foundation model."""
 
-    def __init__(self, model_name: str, device: str, use_fast: bool = False):
+    MODEL_TYPE = 'dinov2'
+    DEFAULT_SIZE = 'base'
+
+    def __init__(self, device: str, size: str | None = None, use_fast: bool = False):
         """Load the DINOv2 model and associated preprocessing pipeline."""
         self.device = device
-        self.processor = AutoImageProcessor.from_pretrained(model_name, use_fast=use_fast)
-        self.model = AutoModel.from_pretrained(model_name).to(device)
+        self.size = size or self.DEFAULT_SIZE
+
+        if self.size not in DINOv2_MODEL_NAMES:
+            raise ValueError(
+                f'Unknown DINOv2 model size: {self.size}. '
+                f'Expected one of {DINOv2_MODEL_NAMES}.'
+            )
+
+        self.model_name = DINOv2_MODEL_NAMES[self.size]
+
+        self.processor = AutoImageProcessor.from_pretrained(self.model_name, use_fast=use_fast)
+        self.model = AutoModel.from_pretrained(self.model_name).to(device)
         self.model.eval()
+
 
     @torch.inference_mode()
     def embed(self, frame_bgr: np.ndarray) -> torch.Tensor:
@@ -26,7 +48,7 @@ class DinoV2Embedder(BaseEmbedder):
         global image representation.
         """
         frame_small = reduce_res(frame_bgr)
-        image = bgr_to_pil(frame_small)
+        image = bgr_2_pil(frame_small)
 
         inputs = self.processor(images=image, return_tensors="pt")
         pixel_values = inputs['pixel_values'].to(self.device)
