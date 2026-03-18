@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from transformers import CLIPModel, CLIPProcessor
 
-from webcam_cv.models.base import BaseEmbedder, reduce_resolution
+from webcam_cv.models.base import BaseEmbedder, prepare_frame
 from webcam_cv.utils.image import bgr_2_pil
 
 CLIP_MODEL_NAMES = {
@@ -35,7 +35,7 @@ class ClipEmbedder(BaseEmbedder):
 
     @torch.inference_mode()
     def embed(self, frame_bgr: np.ndarray, reduce_img_size: bool = True) -> torch.Tensor:
-        frame: np.ndarray = reduce_resolution(frame_bgr, reduce_img_size)
+        frame: np.ndarray = prepare_frame(frame_bgr, reduce_img_size)
 
         image = bgr_2_pil(frame)
 
@@ -52,7 +52,7 @@ class ClipEmbedder(BaseEmbedder):
     def score_prompts(self, frame_bgr: np.ndarray, prompts: list[str],
                       reduce_img_size: bool = True) -> list[tuple[str, float]]:
         """Score text prompts against one image and return them sorted by match probability."""
-        frame = reduce_resolution(frame_bgr, reduce_img_size)
+        frame = prepare_frame(frame_bgr, reduce_img_size)
 
         image = bgr_2_pil(frame)
 

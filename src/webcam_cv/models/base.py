@@ -5,7 +5,7 @@ import numpy as np
 from webcam_cv.utils.image import reduce_res
 
 
-def reduce_resolution(frame: np.ndarray, reduce_img_size: bool = True) -> np.ndarray:
+def prepare_frame(frame: np.ndarray, reduce_img_size: bool = True) -> np.ndarray:
     if reduce_img_size:
         return reduce_res(frame)
     return frame

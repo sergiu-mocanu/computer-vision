@@ -3,7 +3,7 @@ import torch
 import torch.nn.functional as F
 from transformers import AutoImageProcessor, AutoModel
 
-from webcam_cv.models.base import BaseEmbedder, reduce_resolution
+from webcam_cv.models.base import BaseEmbedder, prepare_frame
 from webcam_cv.utils.image import bgr_2_pil
 
 
@@ -41,7 +41,7 @@ class DinoV2Embedder(BaseEmbedder):
 
     @torch.inference_mode()
     def embed(self, frame_bgr: np.ndarray, reduce_img_size: bool = True) -> torch.Tensor:
-        frame = reduce_resolution(frame_bgr, reduce_img_size)
+        frame = prepare_frame(frame_bgr, reduce_img_size)
 
         image = bgr_2_pil(frame)
 

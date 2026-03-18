@@ -1,20 +1,22 @@
 from webcam_cv.config import AppConfig
+from webcam_cv.models.registry import MODEL_REGISTRY
 from webcam_cv.models.base import BaseEmbedder
-from webcam_cv.models.clip_embedder import ClipEmbedder
-from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 
 
 def create_embedder(config: AppConfig) -> BaseEmbedder:
-    if config.model_type == 'dinov2':
-        return DinoV2Embedder(
-            device=config.device,
-            size=config.model_size
-        )
+    models = list_models()
 
-    elif config.model_type == 'clip':
-        return ClipEmbedder(
-            device=config.device,
-            size=config.model_size
-        )
+    if config.model_type not in models:
+        raise ValueError(f'Unsupported model_type: {config.model_type}'
+                         f'Supported models: {", ".join(models)}')
 
-    raise ValueError(f'Unsupported model_type: {config.model_type}')
+    model_cls = MODEL_REGISTRY[config.model_type]
+
+    return model_cls(
+        device=config.device,
+        size=config.model_size
+    )
+
+
+def list_models():
+    return MODEL_REGISTRY.keys()
