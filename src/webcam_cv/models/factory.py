@@ -8,7 +8,7 @@ def create_embedder(config: AppConfig) -> BaseEmbedder:
 
     if config.model_type not in models:
         raise ValueError(f'Unsupported model_type: {config.model_type}'
-                         f'Supported models: {", ".join(models)}')
+                         f'Available models: {", ".join(models)}')
 
     model_cls = MODEL_REGISTRY[config.model_type]
 

@@ -1,4 +1,4 @@
-from typing import List, Tuple, Any
+from typing import List, Tuple
 
 import cv2
 import time
@@ -17,7 +17,7 @@ image_sizes = [1080, 768, 640, 512, 384, 256, 224]
 exp_res_type = dict[float, list[float]]
 
 
-def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 30,
+def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 20,
                   delay_ms: float = 100, nb_runs:int = 5) -> Tuple[exp_res_type, exp_res_type]:
     """Estimate the optimal input resolution for a vision embedding model by balancing
     computational cost and embedding fidelity.
@@ -27,10 +27,9 @@ def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 30,
 
     Note: during the capture time, it is important to add a natural change of scenery (e.g., hand movement).
     """
-
-    # Capture multiple frames with a little spacing between them
     print(f'Computing embedding time for CV model: {embedder.model_name}\n')
 
+    # Capture multiple frames with a little spacing between them
     cap = cv2.VideoCapture(0)
     frames: List[np.ndarray] = []
 
@@ -43,7 +42,7 @@ def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 30,
         frame_display = frame.copy()
         draw_text(
             frame_display,
-            f'Capturing frame: {current_frame}/{nb_frames}',
+            f'Capturing frame: {current_frame + 1}/{nb_frames}',
             30
         )
         show('', frame_display)
@@ -134,13 +133,3 @@ def compute_optimal_resolution(list_time: exp_res_type, list_sim: exp_res_type, 
 embedder = create_embedder(AppConfig(model_type='dinov2'))
 list_times, list_sims = run_benchmark(embedder)
 compute_optimal_resolution(list_times, list_sims)
-
-
-
-
-
-
-
-
-
-
