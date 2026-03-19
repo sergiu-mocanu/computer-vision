@@ -37,7 +37,6 @@ def run_anomaly_app(config: AppConfig) -> None:
 
     frame_index = 0
     last_infer_ms = 0.0
-    smoothed_score = None
     previous_frame = None
 
     # --------------------------------------------------------
@@ -61,7 +60,6 @@ def run_anomaly_app(config: AppConfig) -> None:
 
         if key == ord('c'):
             scorer.clear()
-            smoothed_score = None
             print('Reference cleared')
 
         if key == ord('s'):
@@ -118,7 +116,7 @@ def run_anomaly_app(config: AppConfig) -> None:
 
             start = time.perf_counter()
             embedding = embedder.embed(frame)
-            smoothed_score = scorer.score(embedding)
+            scorer.score(embedding)
             last_infer_ms = (time.perf_counter() - start) * 1000
 
         # --------------------------------------------------------
@@ -130,10 +128,12 @@ def run_anomaly_app(config: AppConfig) -> None:
         else:
             draw_text(display, 'Reference: ready', 30)
 
-            if smoothed_score is not None:
-                status = 'ANOMALY' if scorer.is_anomaly(smoothed_score) else 'NORMAL'
+            score = scorer.smoothed_score
+
+            if score is not None:
+                status = 'ANOMALY' if scorer.is_anomaly(score) else 'NORMAL'
                 draw_text(display, f'Status: {status}', 60)
-                draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 90)
+                draw_text(display, f'Anomaly score: {score:.4f}', 90)
                 draw_text(display, f'Threshold: {config.anomaly_threshold:.4f}', 120)
                 draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 150)
 

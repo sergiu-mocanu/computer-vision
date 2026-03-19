@@ -2,8 +2,6 @@ import cv2
 from PIL import Image
 import numpy as np
 
-from webcam_cv.config import AppConfig
-
 
 def bgr_2_pil(frame_bgr: np.ndarray) -> Image.Image:
     """Converts a BGR image to PIL Image (red, green, blue)."""
@@ -29,8 +27,7 @@ def reduce_res(frame: np.ndarray, max_width: int = 384) -> np.ndarray:
     return cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
 
-def is_image_unchanged(current_frame: np.ndarray, previous_frame: np.ndarray,
-                       threshold: int = AppConfig.motion_threshold) -> bool:
+def is_image_unchanged(current_frame: np.ndarray, previous_frame: np.ndarray, threshold: int = 2) -> bool:
     """Determine if a frame has been changed significantly.
 
     Skipping inference when change is negligible reduces computational resources.

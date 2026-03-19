@@ -18,16 +18,17 @@ class AnomalyScorer:
     by measuring their deviation from this reference. Used by DINOv2 model.
     """
 
-    def __init__(self, threshold: float, smoothing_window: int = 20) -> None:
+    def __init__(self, threshold: float, ema_alpha: float = 0.2) -> None:
         """Initialize the anomaly scorer."""
         self.threshold = threshold
-        self.history = deque(maxlen=smoothing_window)
+        self.ema_alpha = ema_alpha
         self.reference_embedding = None
+        self.smoothed_score = None
 
 
     def clear(self) -> None:
         """Reset the reference embedding and score history."""
-        self.history.clear()
+        self.smoothed_score = None
         self.reference_embedding = None
 
 
@@ -38,13 +39,21 @@ class AnomalyScorer:
 
 
     def score(self, embedding: torch.Tensor) -> float | None:
-        """Compute a smoothed anomaly score for a new embedding."""
+        """Compute a smoothed anomaly score for a new embedding using exponential moving average (EMA)."""
         if self.reference_embedding is None:
             return None
 
-        score = cosine_distance(embedding, self.reference_embedding)
-        self.history.append(score)
-        return float(np.mean(self.history))
+        raw_score = cosine_distance(embedding, self.reference_embedding)
+
+        if self.smoothed_score is None:
+            self.smoothed_score = raw_score
+        else:
+            self.smoothed_score = (
+                self.ema_alpha * raw_score
+                + (1 - self.ema_alpha) * self.smoothed_score
+            )
+
+        return float(self.smoothed_score)
 
 
     def is_anomaly(self, score: float) -> bool:
