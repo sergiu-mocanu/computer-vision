@@ -1,45 +1,85 @@
-# Webcam Visual Anomaly Detection (Prototype)
+# Webcam Computer Vision Prototype
 
-Small experimental prototype for real-time visual anomaly detection using a webcam.
+Real-time computer vision prototype using a webcam to explore:
 
-The goal of this project is to explore computer vision foundations such as vision transformers, feature embeddings, and similarity-based anomaly detection.
-
-This repository was created as preparation for roles involving industrial computer vision and applied AI.
+- Visual anomaly detection (DINOv2)
+- Zero-shot image–text similarity (CLIP)
 
 ---
 
 ## Overview
 
-The system learns a "normal" visual state from a short recording of webcam frames and then detects when the scene deviates from that reference.
+The application supports two independent modes:
+
+## 1. Anomaly Detection (DINOv2)
+
+Learns a “normal” visual state from reference frames and detects deviations.
 
 Pipeline:
 
-Webcam frame  
-→ Vision transformer feature extraction (DINOv2)  
-→ Image embedding  
-→ Similarity comparison with reference embedding  
-→ Anomaly score
+```angular2html
+Webcam frame
+    ↓
+DINOv2 embedding (ViT)
+    ↓
+Reference comparison (cosine distance)
+    ↓
+Temporal smoothing (EMA)
+    ↓
+Anomaly score
+```
+
+## 2. CLIP Mode (Image–Text Similarity)
+
+Scores how well the current frame matches predefined text prompts.
+
+Example prompts:
+
+- a hand in front of the camera
+- a person in front of the camera
+- an empty chair
+- a mirror
+
+Output:
+- Best matching prompt
+- Confidence score
+- Top-k ranked prompts
 
 ---
 
-## Demo
-
-Example workflow:
-
-1. Run the script
-2. Press **r** to record normal frames
-3. Modify the scene (add/remove an object)
-4. The anomaly score increases
+## Features
+- Real-time webcam inference (OpenCV)
+- Vision Transformer embeddings (DINOv2)
+- Zero-shot multimodal reasoning (CLIP)
+- Configurable runtime behavior
+- GPU acceleration (PyTorch + CUDA)
 
 ---
 
-## Technologies
+## Project structure
 
-- Python
-- PyTorch
-- OpenCV
-- Vision Transformers (DINOv2)
-- HuggingFace Transformers
+```angular2html
+src/webcam_cv/
+├── app.py
+├── config.py
+├── camera.py
+├── display.py
+├── models/
+│   ├── base.py
+│   ├── dinov2_embedder.py
+│   ├── clip_embedder.py
+│   ├── factory.py
+│   └── registry.py
+├── app_modes/
+│   ├── anomaly_app.py
+│   └── clip_app.py
+├── anomaly/
+│   └── scorer.py
+├── experiments
+│   └── resolution_benchmark.py
+└── utils/
+    └── image.py
+```
 
 ---
 
@@ -75,13 +115,54 @@ If CUDA is not available, the prototype will run on CPU (slower but functional).
 
 ---
 
-## Running the prototype
+## Running
+```bash
+python main.py
+```
+
+---
+
+## Configuration
+
+Edit `config.py`
+
+### Select model
+
+```python
+model_type = 'dinov2'  # or 'clip'
+model_size = 'base'
+```
+
+---
+
+## Controls
+
+### Anomaly mode
+
 | Key | Action                  |
-|-----|-------------------------|
-| r   | record normal reference |
+| --- | ----------------------- |
+| r   | record reference frames |
 | c   | clear reference         |
 | s   | save frame              |
 | q   | quit                    |
+
+
+### CLIP mode
+
+| Key | Action     |
+| --- | ---------- |
+| s   | save frame |
+| q   | quit       |
+
+
+---
+
+## Available Models
+
+| Model  | Variants           | Purpose                     |
+| ------ | ------------------ | --------------------------- |
+| dinov2 | small, base, large | visual embeddings / anomaly |
+| clip   | base, large        | image–text similarity       |
 
 ---
 
@@ -90,10 +171,10 @@ If CUDA is not available, the prototype will run on CPU (slower but functional).
 This is an early prototype.
 
 Limitations include:
-- anomaly detection only at frame level
-- no localization of anomalies
-- sensitivity to lighting and camera motion
-- threshold chosen empirically
+- Frame-level anomaly detection (no localization)
+- Fixed prompt list for CLIP
+- Threshold tuning is manual
+- Sensitive to lighting / camera changes
 
 ---
 

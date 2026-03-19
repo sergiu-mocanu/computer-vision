@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    model_type: str = 'dinov2'
+    model_type: str = 'clip'
     model_size: str = None
 
     normal_frames_target: int = 50
@@ -23,6 +23,6 @@ class AppConfig:
         'a hand in front of the camera',
         'a person in front of the camera',
         'an empty chair',
-        'a car in front of the camera',
-        'an elephant in front of the camera'
+        'a mirror',
+        'a car'
     ])
