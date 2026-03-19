@@ -15,7 +15,7 @@ class AnomalyScorer:
     """Lightweight anomaly detector using cosine distance in embedding space.
 
     Learns a reference embedding from normal frames and scores new embeddings
-    by measuring their deviation from this reference.
+    by measuring their deviation from this reference. Used by DINOv2 model.
     """
 
     def __init__(self, threshold: float, smoothing_window: int = 20) -> None:

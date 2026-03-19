@@ -11,7 +11,7 @@ from webcam_cv.anomaly.scorer import AnomalyScorer
 
 
 def run_anomaly_app(config: AppConfig) -> None:
-    """Run the real-time webcam anomaly detection application.
+    """Run the real-time webcam anomaly detection application using DINOv2 model.
 
     Initializes the camera, embedding model, and anomaly scorer.
     Captures frames in a loop, processes embeddings at the configured
@@ -22,17 +22,12 @@ def run_anomaly_app(config: AppConfig) -> None:
     # --------------------------------------------------------
     # Initialize components (camera, model, anomaly scorer)
     # --------------------------------------------------------
-    config = AppConfig(model_type='dinov2')
-
     camera = Camera()
     embedder = create_embedder(config)
     scorer = AnomalyScorer(config.anomaly_threshold)
 
-    print(f'Device: {config.device.upper()}')
-    print(f'Model: {embedder.model_name}')
-
-    print(f'Running anomaly mode on device: {config.device}')
-    print(f'Using device: {config.device.upper()}')
+    print(f'Running anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'} ')
+    print(f'Model: {embedder.model_name}\n')
 
     print('Controls:')
     print('  r = record normal reference frames')
@@ -87,7 +82,7 @@ def run_anomaly_app(config: AppConfig) -> None:
             embeddings = []
             collected = 0
 
-            while collected < config.normal_frames_target:
+            while collected < config.normal_frames_target and frame_index % config.frame_stride == 0:
                 ok_ref, ref_frame = camera.read()
                 if not ok_ref:
                     break
@@ -129,19 +124,18 @@ def run_anomaly_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         # Render overlay and display frame
         # --------------------------------------------------------
-
         if scorer.reference_embedding is None:
-            draw_text(display, 'Status: no reference yet (press r)', 100)
+            draw_text(display, 'Status: no reference yet (press r)', 30)
 
         else:
-            draw_text(display, 'Reference: ready', 100)
+            draw_text(display, 'Reference: ready', 30)
 
             if smoothed_score is not None:
                 status = 'ANOMALY' if scorer.is_anomaly(smoothed_score) else 'NORMAL'
-                draw_text(display, f'Status: {status}', 140)
-                draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 170)
-                draw_text(display, f'Threshold: {config.anomaly_threshold:.4f}', 200)
-                draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 230)
+                draw_text(display, f'Status: {status}', 60)
+                draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 90)
+                draw_text(display, f'Threshold: {config.anomaly_threshold:.4f}', 120)
+                draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 150)
 
         show(config.window_name, display)
 

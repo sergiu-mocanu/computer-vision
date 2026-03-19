@@ -11,8 +11,16 @@ from webcam_cv.utils.image import is_image_unchanged
 
 
 def run_clip_app(config: AppConfig) -> None:
-    print(f'Running clip mode on device: {config.device}')
+    """Run the real-time webcam image-prompt similarity using CLIP model.
 
+    Initializes the camera and the CV model.
+    Captures frames in a loop, compute similarity
+    and renders the result in a GUI window.
+    """
+
+    # --------------------------------------------------------
+    # Initialize components (camera, model, anomaly scorer)
+    # --------------------------------------------------------
     camera = Camera()
     embedder = create_embedder(config)
 
@@ -23,10 +31,16 @@ def run_clip_app(config: AppConfig) -> None:
     best_score: Optional[str] = None
     previous_frame = None
 
+    print(f'Running clip mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
+    print(f'Model: {embedder.model_name}\n')
+
     print('Controls:')
     print('  s = save current frame')
     print('  q = quit')
 
+    # --------------------------------------------------------
+    # Main realtime loop
+    # --------------------------------------------------------
     while True:
         ok, frame = camera.read()
         if not ok:
@@ -37,6 +51,9 @@ def run_clip_app(config: AppConfig) -> None:
 
         key = cv2.waitKey(1) & 0xFF
 
+        # --------------------------------------------------------
+        # Handle user input (save frame, quit)
+        # --------------------------------------------------------
         if key == ord('q'):
             break
 
@@ -45,6 +62,9 @@ def run_clip_app(config: AppConfig) -> None:
             cv2.imwrite(filename, frame)
             print(f'Saved {filename}')
 
+        # --------------------------------------------------------
+        # Compute image-prompt similarity
+        # --------------------------------------------------------
         if frame_index % config.frame_stride == 0:
             if previous_frame is not None:
                 if is_image_unchanged(frame, previous_frame):
@@ -58,16 +78,17 @@ def run_clip_app(config: AppConfig) -> None:
 
             previous_frame = frame
 
-        draw_text(display, 'Mode: clip', 30)
-        draw_text(display, f'Model: {embedder.model_name}', 60)
-        draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 90)
+        # --------------------------------------------------------
+        # Render overlay and display frame
+        # --------------------------------------------------------
+        draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 30)
 
         if best_prompt:
-            draw_text(display, f'Best prompt: {best_prompt}', 120)
-            draw_text(display, f'Confidence: {best_score:.3f}', 150)
+            draw_text(display, f'Best prompt: {best_prompt}', 80)
+            draw_text(display, f'Confidence: {best_score:.3f}', 110)
 
             top_k = prompt_scores[:3]
-            y = 190
+            y = 160
             for prompt, score in top_k:
                 draw_text(display, f'{prompt}: {score:.3f}', y, scale=0.6)
                 y += 30

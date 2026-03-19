@@ -12,6 +12,7 @@ class AppConfig:
     normal_frames_target: int = 50
     anomaly_threshold: float = 0.12
     frame_stride: int = 2
+    motion_threshold: int = 2
 
     window_name: str = 'Webcam CV Prototype'
     saved_photos_folder: str = os.path.join(str(Path.home()), 'com-vis-photos')
@@ -22,5 +23,7 @@ class AppConfig:
     clip_prompts: list[str] = field(default_factory=lambda: [
         'a hand in front of the camera',
         'a person in front of the camera',
-        'an empty chair'
+        'an empty chair',
+        'a car in front of the camera',
+        'an elephant in front of the camera'
     ])
