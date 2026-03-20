@@ -3,10 +3,11 @@ import os
 import cv2
 
 from webcam_cv.config import AppConfig
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
+from webcam_cv.models.factory import create_model_for_mode
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show
 from webcam_cv.utils.image import is_image_unchanged
-from webcam_cv.models.factory import create_embedder
 from webcam_cv.anomaly.scorer import AnomalyScorer
 
 
@@ -23,7 +24,10 @@ def run_anomaly_app(config: AppConfig) -> None:
     # Initialize components (camera, model, anomaly scorer)
     # --------------------------------------------------------
     camera = Camera()
-    embedder = create_embedder(config)
+
+    mode_spec = MODE_REGISTRY[config.app_mode]
+    embedder = create_model_for_mode(mode_spec)
+
     scorer = AnomalyScorer(config.anomaly_threshold)
 
     print(f'Running anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'} ')

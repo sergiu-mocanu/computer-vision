@@ -1,12 +1,14 @@
 import time
-from typing import Optional
+from typing import Optional, cast
 
 import cv2
 
+from webcam_cv.config import AppConfig
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
+from webcam_cv.models.clip_embedder import ClipEmbedder
+from webcam_cv.models.factory import create_model_for_mode
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show
-from webcam_cv.models.factory import create_embedder
-from webcam_cv.config import AppConfig
 from webcam_cv.utils.image import is_image_unchanged
 
 
@@ -22,7 +24,10 @@ def run_clip_app(config: AppConfig) -> None:
     # Initialize components (camera, model, anomaly scorer)
     # --------------------------------------------------------
     camera = Camera()
-    embedder = create_embedder(config)
+
+    mode_spec = MODE_REGISTRY[config.app_mode]
+    embedder = create_model_for_mode(mode_spec)
+    clip_embedder = cast(ClipEmbedder, embedder)
 
     frame_index = 0
     last_infer_ms = 0.0
@@ -32,7 +37,7 @@ def run_clip_app(config: AppConfig) -> None:
     previous_frame = None
 
     print(f'Running clip mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
-    print(f'Model: {embedder.model_name}\n')
+    print(f'Model: {clip_embedder.model_name}\n')
 
     print('Controls:')
     print('  s = save current frame')
@@ -71,7 +76,7 @@ def run_clip_app(config: AppConfig) -> None:
                     continue
 
             start = time.perf_counter()
-            prompt_scores = embedder.score_prompts(frame, config.clip_prompts)
+            prompt_scores = clip_embedder.score_prompts(frame, config.clip_prompts)
             last_infer_ms = (time.perf_counter() - start) * 1000
 
             best_prompt, best_score = prompt_scores[0]

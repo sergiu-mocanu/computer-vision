@@ -12,8 +12,7 @@ def prepare_frame(frame: np.ndarray, reduce_img_size: bool = True) -> np.ndarray
 
 
 class BaseEmbedder(ABC):
-    """Abstract interface for models that convert images into feature embeddings."""
-    model_name: str = None
+    model_name: str
 
     @abstractmethod
     def embed(self, frame_bgr: np.ndarray, size: str = None, reduce_img_size: bool = True) -> torch.Tensor:

@@ -6,7 +6,8 @@ import torch
 
 @dataclass
 class AppConfig:
-    model_type: str = 'clip'
+    app_mode: str = 'labeling'
+
     model_size: str = None
 
     normal_frames_target: int = 50

@@ -9,7 +9,7 @@ def draw_text(frame: np.ndarray, text: str, y: int, scale: float = 0.7) -> None:
                 org=(20, y),
                 fontFace=cv2.FONT_HERSHEY_SIMPLEX,
                 fontScale=scale,
-                color=(0, 255, 0),
+                color=(200, 0, 200),
                 thickness=2,
                 lineType=cv2.LINE_AA
                 )

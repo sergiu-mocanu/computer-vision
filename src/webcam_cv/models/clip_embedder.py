@@ -13,9 +13,9 @@ CLIP_MODEL_NAMES = {
 
 
 class ClipEmbedder(BaseEmbedder):
-    MODEL_TYPE = 'clip'
-    DEFAULT_SIZE = 'base'
-    AVAILABLE_SIZES = tuple(CLIP_MODEL_NAMES.keys())
+    MODEL_TYPE: str = 'clip'
+    DEFAULT_SIZE: str = 'base'
+    AVAILABLE_SIZES: list[str] = list(CLIP_MODEL_NAMES.keys())
 
     def __init__(self, device: str, size: str | None = None, use_fast: bool = False) -> None:
         self.device = device
@@ -24,7 +24,7 @@ class ClipEmbedder(BaseEmbedder):
         if self.size not in CLIP_MODEL_NAMES:
             raise ValueError(
                 f'Unknown CLIP size: {self.size}. '
-                f'Expected one of: {list(CLIP_MODEL_NAMES)}'
+                f'Expected one of: {list(self.AVAILABLE_SIZES)}'
             )
 
         self.model_name = CLIP_MODEL_NAMES[self.size]
