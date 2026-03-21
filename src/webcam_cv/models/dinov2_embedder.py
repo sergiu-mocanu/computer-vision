@@ -1,9 +1,14 @@
 import numpy as np
-import torch
 import torch.nn.functional as F
+
+import cv2
+import torch
 from transformers import AutoImageProcessor, AutoModel
 
-from webcam_cv.models.base import BaseEmbedder, prepare_frame
+from webcam_cv.config import AppConfig
+from webcam_cv.camera import Camera
+from webcam_cv.display import draw_text, show
+from webcam_cv.models.base import BaseEmbedder, AnomalyEmbedder, prepare_frame
 from webcam_cv.utils.image import bgr_2_pil
 
 
@@ -54,3 +59,64 @@ class DinoV2Embedder(BaseEmbedder):
         embedding = F.normalize(cls_token, dim=-1)
 
         return embedding.squeeze(0).detach().cpu()
+
+
+    def collect_normal_frames(self, camera: Camera, config: AppConfig) -> list[torch.Tensor]:
+        """Collect normal frames as a baseline for the anomaly measurement."""
+        embeddings = []
+        collected = 0
+
+        while collected < config.normal_frames_target:
+            ok_ref, ref_frame = camera.read()
+            if not ok_ref:
+                break
+
+            if collected % config.frame_stride == 0:
+                embeddings.append(self.embed(ref_frame))
+
+            collected += 1
+
+            ref_display = ref_frame.copy()
+            draw_text(
+                ref_display,
+                f'Recording normal frames: {collected}/{config.normal_frames_target}',
+                30
+            )
+            show(config.window_name, ref_display)
+            cv2.waitKey(1)
+
+        return embeddings
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+

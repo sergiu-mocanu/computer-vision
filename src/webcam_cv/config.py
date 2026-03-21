@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'labeling'
+    app_mode: str = 'pipeline'
 
     model_size: str = None
 

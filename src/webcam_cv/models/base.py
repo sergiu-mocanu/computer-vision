@@ -2,6 +2,8 @@ from abc import ABC, abstractmethod
 import torch
 import numpy as np
 
+from webcam_cv.camera import Camera
+from webcam_cv.config import AppConfig
 from webcam_cv.utils.image import reduce_res
 
 
@@ -17,4 +19,10 @@ class BaseEmbedder(ABC):
     @abstractmethod
     def embed(self, frame_bgr: np.ndarray, size: str = None, reduce_img_size: bool = True) -> torch.Tensor:
         """Compute an embedding vector from an input frame."""
+        pass
+
+
+class AnomalyEmbedder(BaseEmbedder):
+    @abstractmethod
+    def collect_normal_frames(self, camera: Camera, config: AppConfig) -> list[torch.Tensor]:
         pass

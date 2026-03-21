@@ -1,14 +1,18 @@
 from webcam_cv.config import AppConfig
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.base import BaseEmbedder
 
 
-def create_model_for_mode(mode_spec: dict, role: str = 'primary') -> BaseEmbedder:
+def create_model_from_spec(mode_spec: dict, role: str = 'primary') -> BaseEmbedder:
     config = AppConfig()
 
-    if role not in mode_spec['models']:
+    app_mode_models = MODE_REGISTRY[config.app_mode]['models']
+
+    if role not in app_mode_models:
+        print(app_mode_models)
         raise ValueError(f"Mode '{config.app_mode}' does not define model role '{role}'")
 
-    model_spec = mode_spec['models'][role]
+    model_spec = app_mode_models[role]
 
     model_cls = model_spec['model_cls']
     model_size = model_spec.get('size')

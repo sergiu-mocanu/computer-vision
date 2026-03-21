@@ -12,5 +12,11 @@ MODE_REGISTRY = {
         'models': {
             'primary': {'model_cls': ClipEmbedder},
         }
+    },
+    'pipeline': {
+        'models': {
+            'detector': {'model_cls': DinoV2Embedder},
+            'classifier': {'model_cls': ClipEmbedder, 'size': 'large'}
+        }
     }
 }

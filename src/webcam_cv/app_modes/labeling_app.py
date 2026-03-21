@@ -6,13 +6,13 @@ import cv2
 from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.clip_embedder import ClipEmbedder
-from webcam_cv.models.factory import create_model_for_mode
+from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show
-from webcam_cv.utils.image import is_image_unchanged
+from webcam_cv.utils.image import is_image_unchanged, write_image_locally
 
 
-def run_clip_app(config: AppConfig) -> None:
+def run_labelling_app(config: AppConfig) -> None:
     """Run the real-time webcam image-prompt similarity using CLIP model.
 
     Initializes the camera and the CV model.
@@ -26,8 +26,7 @@ def run_clip_app(config: AppConfig) -> None:
     camera = Camera()
 
     mode_spec = MODE_REGISTRY[config.app_mode]
-    embedder = create_model_for_mode(mode_spec)
-    clip_embedder = cast(ClipEmbedder, embedder)
+    embedder = cast(ClipEmbedder, create_model_from_spec(mode_spec))
 
     frame_index = 0
     last_infer_ms = 0.0
@@ -36,8 +35,8 @@ def run_clip_app(config: AppConfig) -> None:
     best_score: Optional[str] = None
     previous_frame = None
 
-    print(f'Running clip mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
-    print(f'Model: {clip_embedder.model_name}\n')
+    print(f'Running Labeling mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
+    print(f'Model: {embedder.model_name}\n')
 
     print('Controls:')
     print('  s = save current frame')
@@ -63,9 +62,7 @@ def run_clip_app(config: AppConfig) -> None:
             break
 
         if key == ord('s'):
-            filename = f'snapshot_{int(time.time())}.jpg'
-            cv2.imwrite(filename, frame)
-            print(f'Saved {filename}')
+            write_image_locally(frame)
 
         # --------------------------------------------------------
         # Compute image-prompt similarity
@@ -76,7 +73,7 @@ def run_clip_app(config: AppConfig) -> None:
                     continue
 
             start = time.perf_counter()
-            prompt_scores = clip_embedder.score_prompts(frame, config.clip_prompts)
+            prompt_scores = embedder.score_prompts(frame, config.clip_prompts)
             last_infer_ms = (time.perf_counter() - start) * 1000
 
             best_prompt, best_score = prompt_scores[0]

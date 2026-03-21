@@ -1,14 +1,16 @@
 import time
-import os
+from typing import cast
+
 import cv2
 
 from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
-from webcam_cv.models.factory import create_model_for_mode
+from webcam_cv.models.dinov2_embedder import DinoV2Embedder
+from webcam_cv.models.factory import create_model_from_spec
+from webcam_cv.anomaly.scorer import AnomalyScorer
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show
-from webcam_cv.utils.image import is_image_unchanged
-from webcam_cv.anomaly.scorer import AnomalyScorer
+from webcam_cv.utils.image import is_image_unchanged, write_image_locally
 
 
 def run_anomaly_app(config: AppConfig) -> None:
@@ -16,8 +18,7 @@ def run_anomaly_app(config: AppConfig) -> None:
 
     Initializes the camera, embedding model, and anomaly scorer.
     Captures frames in a loop, processes embeddings at the configured
-    stride, computes anomaly scores, and renders the result in a GUI
-    window.
+    stride, computes anomaly scores, and renders the result in a GUI window.
     """
 
     # --------------------------------------------------------
@@ -26,11 +27,10 @@ def run_anomaly_app(config: AppConfig) -> None:
     camera = Camera()
 
     mode_spec = MODE_REGISTRY[config.app_mode]
-    embedder = create_model_for_mode(mode_spec)
-
+    embedder = cast(DinoV2Embedder, create_model_from_spec(mode_spec))
     scorer = AnomalyScorer(config.anomaly_threshold)
 
-    print(f'Running anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'} ')
+    print(f'Running Anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'} ')
     print(f'Model: {embedder.model_name}\n')
 
     print('Controls:')
@@ -67,42 +67,13 @@ def run_anomaly_app(config: AppConfig) -> None:
             print('Reference cleared')
 
         if key == ord('s'):
-            filename = f'snapshot_{int(time.time())}.jpg'
-            folder_path = config.saved_photos_folder
-            filepath = os.path.join(folder_path, filename)
-            if not os.path.exists(folder_path):
-                os.makedirs(config.saved_photos_folder)
-            cv2.imwrite(filepath, frame)
-            print(f'Saved {filepath}')
+            write_image_locally(frame)
 
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
         # --------------------------------------------------------
         if key == ord('r'):
-            print(f'Recording {config.normal_frames_target} frames')
-
-            embeddings = []
-            collected = 0
-
-            while collected < config.normal_frames_target and frame_index % config.frame_stride == 0:
-                ok_ref, ref_frame = camera.read()
-                if not ok_ref:
-                    break
-
-                if collected % config.frame_stride == 0:
-                    embeddings.append(embedder.embed(ref_frame))
-
-                collected += 1
-
-                ref_display = ref_frame.copy()
-                draw_text(
-                    ref_display,
-                    f'Recording normal frames: {collected} / {config.normal_frames_target}',
-                    30
-                )
-
-                show(config.window_name, ref_display)
-                cv2.waitKey(1)
+            embeddings = embedder.collect_normal_frames(camera=camera, config=config)
 
             if embeddings:
                 scorer.fit_reference(embeddings)

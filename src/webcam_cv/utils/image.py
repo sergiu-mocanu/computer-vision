@@ -1,6 +1,11 @@
+import time
+import os
+
 import cv2
 from PIL import Image
 import numpy as np
+
+from webcam_cv.config import AppConfig
 
 
 def bgr_2_pil(frame_bgr: np.ndarray) -> Image.Image:
@@ -39,3 +44,17 @@ def is_image_unchanged(current_frame: np.ndarray, previous_frame: np.ndarray, th
     motion_score = diff.mean()
 
     return motion_score < threshold
+
+
+def write_image_locally(frame: np.ndarray) -> None:
+    config = AppConfig()
+
+    filename = f'snapshot_{int(time.time())}.jpg'
+    folder_path = AppConfig.saved_photos_folder
+    filepath = os.path.join(folder_path, filename)
+
+    if not os.path.exists(folder_path):
+        os.makedirs(config.saved_photos_folder)
+
+    cv2.imwrite(filepath, frame)
+    print(f'Saved {filepath}')
