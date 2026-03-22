@@ -8,8 +8,9 @@ from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.camera import Camera
-from webcam_cv.display import draw_text, show
+from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.utils.image import is_image_unchanged, write_image_locally
+
 
 
 def run_labelling_app(config: AppConfig) -> None:
@@ -41,6 +42,8 @@ def run_labelling_app(config: AppConfig) -> None:
     print('Controls:')
     print('  s = save current frame')
     print('  q = quit')
+
+    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop
@@ -96,7 +99,7 @@ def run_labelling_app(config: AppConfig) -> None:
                 y += 30
 
 
-        show(config.window_name, display)
+        show(config, display)
 
     camera.release()
     cv2.destroyAllWindows()

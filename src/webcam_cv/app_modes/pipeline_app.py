@@ -10,7 +10,7 @@ from webcam_cv.anomaly.scorer import AnomalyScorer
 from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.camera import Camera
-from webcam_cv.display import draw_text, show
+from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.utils.image import write_image_locally
 from webcam_cv.utils.image import is_image_unchanged
 
@@ -65,6 +65,8 @@ def run_pipeline_app(config: AppConfig) -> None:
     print('  c = clear reference')
     print('  s = save current frame')
     print('  q = quit')
+
+    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop
@@ -161,7 +163,7 @@ def run_pipeline_app(config: AppConfig) -> None:
                     draw_text(display, f'Confidence: {best_score:.3f}', 190, scale=0.6)
                     draw_text(display, f'Classifier inference: {last_classifier_ms:.1f} ms', 220, scale=0.6)
 
-        show(config.window_name, display)
+        show(config, display)
 
     camera.release()
     cv2.destroyAllWindows()

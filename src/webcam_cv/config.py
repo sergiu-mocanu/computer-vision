@@ -19,6 +19,9 @@ class AppConfig:
     ema_alpha: float = 0.2
 
     window_name: str = 'Webcam CV Prototype'
+    window_width: int = 900
+    window_height: int = 720
+
     saved_photos_folder: str = os.path.join(str(Path.home()), 'com-vis-photos')
 
     device: str = 'cuda' if torch.cuda.is_available() else 'cpu'

@@ -84,7 +84,7 @@ class DinoV2Embedder(BaseEmbedder):
                 f'Recording normal frames: {collected}/{config.normal_frames_target}',
                 30
             )
-            show(config.window_name, ref_display)
+            show(config, ref_display)
             cv2.waitKey(1)
 
         return embeddings

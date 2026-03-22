@@ -9,7 +9,7 @@ from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.anomaly.scorer import AnomalyScorer
 from webcam_cv.camera import Camera
-from webcam_cv.display import draw_text, show
+from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.utils.image import is_image_unchanged, write_image_locally
 
 
@@ -45,6 +45,8 @@ def run_anomaly_app(config: AppConfig) -> None:
     frame_index = 0
     last_infer_ms = 0.0
     previous_frame = None
+
+    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop
@@ -115,7 +117,7 @@ def run_anomaly_app(config: AppConfig) -> None:
                 draw_text(display, f'Threshold: {config.anomaly_z_threshold:.4f}', 130)
                 draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 160)
 
-        show(config.window_name, display)
+        show(config, display)
 
     camera.release()
     cv2.destroyAllWindows()

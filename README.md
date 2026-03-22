@@ -52,7 +52,7 @@ Output:
 
 Combine `anomaly detection` + `image labeling` to reduce computational cost:
 
-- Record, compute and label a normal scene
+- Capture, compute and label a normal scene
 - Use DINOv2 to detect anomalies
 - Use CLIP's text-image similarity only when an anomaly is detected
 
