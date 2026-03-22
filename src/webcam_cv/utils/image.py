@@ -14,6 +14,14 @@ def bgr_2_pil(frame_bgr: np.ndarray) -> Image.Image:
     return Image.fromarray(frame_rgb)
 
 
+def apply_gamma(config: AppConfig, frame: np.ndarray):
+    """Apply image gamma correction to customize brightness."""
+    inv_gamma = 1.0 / config.gamma
+    table = ((np.arange(256) / 255.0) ** inv_gamma) * 255
+    table = table.astype('uint8')
+    return cv2.LUT(frame, table)
+
+
 def reduce_res(frame: np.ndarray, max_width: int = 384) -> np.ndarray:
     """Reduce image resolution while keeping the aspect ratio.
 
@@ -46,9 +54,8 @@ def is_image_unchanged(current_frame: np.ndarray, previous_frame: np.ndarray, th
     return motion_score < threshold
 
 
-def write_image_locally(frame: np.ndarray) -> None:
-    config = AppConfig()
-
+def write_image_locally(config: AppConfig, frame: np.ndarray) -> None:
+    """Save captured frame locally."""
     filename = f'snapshot_{int(time.time())}.jpg'
     folder_path = AppConfig.saved_photos_folder
     filepath = os.path.join(folder_path, filename)

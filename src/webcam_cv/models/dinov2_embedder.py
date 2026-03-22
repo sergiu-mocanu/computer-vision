@@ -68,7 +68,7 @@ class DinoV2Embedder(BaseEmbedder):
         frames = 0
 
         while collected < config.normal_frames_target:
-            ok_ref, ref_frame = camera.read()
+            ok_ref, ref_frame = camera.read(config)
             if not ok_ref:
                 break
 

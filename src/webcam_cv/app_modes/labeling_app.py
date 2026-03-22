@@ -49,7 +49,7 @@ def run_labelling_app(config: AppConfig) -> None:
     # Main realtime loop
     # --------------------------------------------------------
     while True:
-        ok, frame = camera.read()
+        ok, frame = camera.read(config)
         if not ok:
             break
 

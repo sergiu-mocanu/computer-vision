@@ -10,7 +10,7 @@ from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.anomaly.scorer import AnomalyScorer
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import is_image_unchanged, write_image_locally
+from webcam_cv.utils.image import apply_gamma, is_image_unchanged, write_image_locally
 
 
 def run_anomaly_app(config: AppConfig) -> None:
@@ -52,7 +52,7 @@ def run_anomaly_app(config: AppConfig) -> None:
     # Main realtime loop
     # --------------------------------------------------------
     while True:
-        ok, frame = camera.read()
+        ok, frame = camera.read(config)
         if not ok:
             break
 

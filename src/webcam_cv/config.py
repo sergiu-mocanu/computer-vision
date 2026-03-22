@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'anomaly'
+    app_mode: str = 'pipeline'
 
     model_size: str = None
 
@@ -21,6 +21,7 @@ class AppConfig:
     window_name: str = 'Webcam CV Prototype'
     window_width: int = 900
     window_height: int = 720
+    gamma: float = 0.7
 
     saved_photos_folder: str = os.path.join(str(Path.home()), 'com-vis-photos')
 
