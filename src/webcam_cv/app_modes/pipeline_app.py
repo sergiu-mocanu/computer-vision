@@ -40,7 +40,10 @@ def run_pipeline_app(config: AppConfig) -> None:
     detector = cast(DinoV2Embedder, create_model_from_spec(detector_spec, role=detector_role))
     classifier = cast(ClipEmbedder, create_model_from_spec(classifier_spec, role=classifier_role))
 
-    scorer = AnomalyScorer(config.anomaly_threshold)
+    scorer = AnomalyScorer(
+        z_threshold=config.anomaly_z_threshold,
+        ema_alpha=config.ema_alpha
+    )
 
     frame_index = 0
     previous_frame = None
@@ -113,7 +116,7 @@ def run_pipeline_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         # Run inference and compute anomaly score
         # --------------------------------------------------------
-        if scorer.reference_embedding is not None and frame_index % config.frame_stride == 0:
+        if scorer.reference_embedding is not None and frame_index % config.inference_frame_stride == 0:
             if previous_frame is not None:
                 if is_image_unchanged(frame, previous_frame):
                     continue
@@ -144,20 +147,19 @@ def run_pipeline_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         if scorer.reference_embedding is None:
             draw_text(display, 'Status: no reference yet (press r)', 30)
-        else:
-            draw_text(display, 'Reference: ready', 30)
 
+        else:
             if smoothed_score is not None:
                 status = 'ANOMALY' if is_anomaly else 'NORMAL'
-                draw_text(display, f'Status: {status}', 60)
-                draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 90)
-                draw_text(display, f'Threshold: {config.anomaly_threshold:.4f}', 120)
-                draw_text(display, f'Detector: {last_detector_ms:.1f} ms', 150)
+                draw_text(display, f'Status: {status}', 30)
+                draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 60)
+                draw_text(display, f'Threshold: {config.anomaly_z_threshold:.2f}', 90)
+                draw_text(display, f'Detector inference: {last_detector_ms:.1f} ms', 120)
 
                 if best_prompt is not None and best_score is not None:
-                    draw_text(display, f'Label: {best_prompt}', 190, scale=0.6)
-                    draw_text(display, f'Confidence: {best_score:.3f}', 210, scale=0.6)
-                    draw_text(display, f'Classifier: {last_classifier_ms:.1f} ms', 240, scale=0.6)
+                    draw_text(display, f'Label: {best_prompt}', 160, scale=0.6)
+                    draw_text(display, f'Confidence: {best_score:.3f}', 190, scale=0.6)
+                    draw_text(display, f'Classifier inference: {last_classifier_ms:.1f} ms', 220, scale=0.6)
 
         show(config.window_name, display)
 

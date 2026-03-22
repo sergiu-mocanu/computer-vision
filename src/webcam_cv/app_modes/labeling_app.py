@@ -21,7 +21,7 @@ def run_labelling_app(config: AppConfig) -> None:
     """
 
     # --------------------------------------------------------
-    # Initialize components (camera, model, anomaly scorer)
+    # Initialize components (camera, model)
     # --------------------------------------------------------
     camera = Camera()
 
@@ -67,7 +67,7 @@ def run_labelling_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         # Compute image-prompt similarity
         # --------------------------------------------------------
-        if frame_index % config.frame_stride == 0:
+        if frame_index % config.inference_frame_stride == 0:
             if previous_frame is not None:
                 if is_image_unchanged(frame, previous_frame):
                     continue
@@ -89,7 +89,7 @@ def run_labelling_app(config: AppConfig) -> None:
             draw_text(display, f'Best prompt: {best_prompt}', 80)
             draw_text(display, f'Confidence: {best_score:.3f}', 110)
 
-            top_k = prompt_scores[:3]
+            top_k = prompt_scores[:config.labelling_top_k]
             y = 160
             for prompt, score in top_k:
                 draw_text(display, f'{prompt}: {score:.3f}', y, scale=0.6)

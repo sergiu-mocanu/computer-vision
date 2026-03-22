@@ -10,9 +10,13 @@ class AppConfig:
 
     model_size: str = None
 
+    reference_frame_stride: int = 2
+    inference_frame_stride: int = 2
+
     normal_frames_target: int = 50
-    anomaly_threshold: float = 0.12
-    frame_stride: int = 2
+
+    anomaly_z_threshold: float = 3.5
+    ema_alpha: float = 0.2
 
     window_name: str = 'Webcam CV Prototype'
     saved_photos_folder: str = os.path.join(str(Path.home()), 'com-vis-photos')
@@ -27,3 +31,4 @@ class AppConfig:
         'a mirror',
         'a car'
     ])
+    labelling_top_k: int = 3

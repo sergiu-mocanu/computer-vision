@@ -28,7 +28,10 @@ def run_anomaly_app(config: AppConfig) -> None:
 
     mode_spec = MODE_REGISTRY[config.app_mode]
     embedder = cast(DinoV2Embedder, create_model_from_spec(mode_spec))
-    scorer = AnomalyScorer(config.anomaly_threshold)
+    scorer = AnomalyScorer(
+        z_threshold=config.anomaly_z_threshold,
+        ema_alpha=config.ema_alpha
+    )
 
     print(f'Running Anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'} ')
     print(f'Model: {embedder.model_name}\n')
@@ -82,7 +85,7 @@ def run_anomaly_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         # Run inference and compute anomaly score
         # --------------------------------------------------------
-        if scorer.reference_embedding is not None and frame_index % config.frame_stride == 0:
+        if scorer.reference_embedding is not None and frame_index % config.inference_frame_stride == 0:
             if previous_frame is not None:
                 if is_image_unchanged(frame, previous_frame):
                     continue
@@ -108,9 +111,9 @@ def run_anomaly_app(config: AppConfig) -> None:
             if score is not None:
                 status = 'ANOMALY' if scorer.is_anomaly(score) else 'NORMAL'
                 draw_text(display, f'Status: {status}', 60)
-                draw_text(display, f'Anomaly score: {score:.4f}', 90)
-                draw_text(display, f'Threshold: {config.anomaly_threshold:.4f}', 120)
-                draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 150)
+                draw_text(display, f'Anomaly score: {score:.4f}', 100)
+                draw_text(display, f'Threshold: {config.anomaly_z_threshold:.4f}', 130)
+                draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 160)
 
         show(config.window_name, display)
 

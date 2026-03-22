@@ -8,7 +8,7 @@ from transformers import AutoImageProcessor, AutoModel
 from webcam_cv.config import AppConfig
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show
-from webcam_cv.models.base import BaseEmbedder, AnomalyEmbedder, prepare_frame
+from webcam_cv.models.base import BaseEmbedder, prepare_frame
 from webcam_cv.utils.image import bgr_2_pil
 
 
@@ -65,16 +65,18 @@ class DinoV2Embedder(BaseEmbedder):
         """Collect normal frames as a baseline for the anomaly measurement."""
         embeddings = []
         collected = 0
+        frames = 0
 
         while collected < config.normal_frames_target:
             ok_ref, ref_frame = camera.read()
             if not ok_ref:
                 break
 
-            if collected % config.frame_stride == 0:
+            if frames % config.reference_frame_stride == 0:
                 embeddings.append(self.embed(ref_frame))
+                collected += 1
 
-            collected += 1
+            frames += 1
 
             ref_display = ref_frame.copy()
             draw_text(
