@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'pipeline'
+    app_mode: str = 'anomaly'
 
     model_size: str = None
 

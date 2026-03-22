@@ -24,6 +24,8 @@ DINOv2 embedding (ViT)
     ↓
 Reference comparison (cosine distance)
     ↓
+Statistical normalization (z-score using mean/std of normal data)
+    ↓
 Temporal smoothing (EMA)
     ↓
 Anomaly score
@@ -47,6 +49,12 @@ Output:
 
 
 ## 3. Pipeline Mode (Anomaly → Semantic Labeling)
+
+Combine `anomaly detection` + `image labeling` to reduce computational cost:
+
+- Record, compute and label a normal scene
+- Use DINOv2 to detect anomalies
+- Use CLIP's text-image similarity only when an anomaly is detected
 
 ```angular2html
 Webcam frame
@@ -93,7 +101,8 @@ src/webcam_cv/
 │   └── registry.py
 ├── app_modes/
 │   ├── anomaly_app.py
-│   └── clip_app.py
+│   ├── labeling_app.py.py
+│   └── pipeline_app.py
 ├── anomaly/
 │   └── scorer.py
 ├── experiments
@@ -147,18 +156,18 @@ python main.py
 
 Edit `config.py`
 
-### Select model
+### Select app mode
 
 ```python
-model_type = 'dinov2'  # or 'clip'
-model_size = 'base'
+model_type = 'anomaly'  # or 'labeling', 'pipeline'
+model_size = 'base'  # or 'None'
 ```
 
 ---
 
 ## Controls
 
-### Anomaly mode
+### Anomaly mode | Pipeline mode
 
 | Key | Action                  |
 | --- | ----------------------- |
@@ -168,7 +177,7 @@ model_size = 'base'
 | q   | quit                    |
 
 
-### CLIP mode
+### Labeling mode
 
 | Key | Action     |
 | --- | ---------- |
@@ -193,9 +202,8 @@ This is an early prototype.
 
 Limitations include:
 - Frame-level anomaly detection (no localization)
-- Fixed prompt list for CLIP
+- Fixed prompt list for labeling
 - Threshold tuning is manual
-- Sensitive to lighting / camera changes
 
 ---
 
