@@ -86,37 +86,3 @@ class DinoV2Embedder(BaseEmbedder):
             cv2.waitKey(1)
 
         return embeddings
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-

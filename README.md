@@ -29,9 +29,9 @@ Temporal smoothing (EMA)
 Anomaly score
 ```
 
-## 2. CLIP Mode (Image–Text Similarity)
+## 2. Semantic Labeling (CLIP)
 
-Scores how well the current frame matches predefined text prompts.
+Scores how well the current frame matches predefined text prompts (text-image similarity).
 
 Example prompts:
 
@@ -44,6 +44,27 @@ Output:
 - Best matching prompt
 - Confidence score
 - Top-k ranked prompts
+
+
+## 3. Pipeline Mode (Anomaly → Semantic Labeling)
+
+```angular2html
+Webcam frame
+    ↓
+DINOv2 embedding (ViT)
+    ↓
+Reference comparison (cosine distance)
+    ↓
+Temporal smoothing (EMA)
+    ↓
+Anomaly score
+    ↓
+[if anomaly detected]
+    ↓
+CLIP (image–text similarity)
+    ↓
+Semantic label + confidence
+```
 
 ---
 
