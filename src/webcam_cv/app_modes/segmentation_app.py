@@ -1,0 +1,110 @@
+import time
+
+import cv2
+import numpy as np
+
+from webcam_cv.camera import Camera
+from webcam_cv.config import AppConfig
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
+from webcam_cv.models.factory import create_model_from_spec
+from webcam_cv.display import init_window, draw_text, show
+from webcam_cv.utils.image import write_image_locally
+
+
+def overlay_mask(frame: np.ndarray, mask: np.ndarray) -> np.ndarray:
+    """Overlay a boolean mask on the frame."""
+    result = frame.copy()
+    result[mask] = (0.6 * result[mask] + 0.4 * np.array([0, 255, 0])).astype(np.uint8)
+    return result
+
+
+def run_segmentation_app(config: AppConfig) -> None:
+    """Run interactive SAM segmentation on frozen webcam frames."""
+
+    # --------------------------------------------------------
+    # Initialize components (camera, model, anomaly scorer)
+    # --------------------------------------------------------
+    camera = Camera()
+
+    mode_spec = MODE_REGISTRY[config.app_mode]
+    segmenter = create_model_from_spec(config=config, mode_spec=mode_spec)
+
+    frame = None
+    frozen_frame = None
+    preview_frame = None
+    last_infer_ms = 0.0
+
+    print(f'Running Segmentation mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
+    print(f'Model: {segmenter.model_name}\n')
+
+    print('Controls:')
+    print('  f = freeze current frame and segment')
+    print('  r = return to live view')
+    print('  s = save current frame')
+    print('  q = quit')
+
+    init_window(config)
+
+    # --------------------------------------------------------
+    # Main realtime loop
+    # --------------------------------------------------------
+    while True:
+        if frozen_frame is None:
+            ok, frame = camera.read(config)
+            if not ok:
+                break
+            display = frame.copy()
+        else:
+            display = preview_frame.copy()
+
+        key = cv2.waitKey(1) & 0xFF
+
+        # --------------------------------------------------------
+        # Handle user input (freeze image, save frame, etc.)
+        # --------------------------------------------------------
+        if key == ord('q'):
+            break
+
+        if key == ord('s'):
+            write_image_locally(config, display)
+
+        if key == ord('r'):
+            frozen_frame = None
+            preview_frame = None
+
+        # --------------------------------------------------------
+        # Run inference and segment areas of the image
+        # --------------------------------------------------------
+        if key == ord('f') and frozen_frame is None:
+            assert frame is not None
+            frozen_frame = frame.copy()
+
+            start = time.perf_counter()
+            masks = segmenter.generate_masks(frozen_frame)
+            last_infer_ms = (time.perf_counter() - start) * 1000.0
+
+            preview_frame = frozen_frame.copy()
+
+            # --------------------------------------------------------
+            # Select top-k masks (regions)
+            # --------------------------------------------------------
+            if masks:
+                for mask_index in range(5):
+                    mask = np.asarray(masks[mask_index], dtype=bool)
+                    preview_frame = overlay_mask(preview_frame, mask)
+
+            preview_frame = np.asarray(preview_frame).astype(np.uint8)
+
+        draw_text(display, 'Mode: SAM', 30)
+        draw_text(display, f'Model: {segmenter.model_name}', 60)
+
+        if frozen_frame is None:
+            draw_text(display, 'Press f to freeze and segment', 100)
+        else:
+            draw_text(display, 'Frozen frame segmented', 100)
+            draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 130)
+
+        show(config, display if frozen_frame is None else preview_frame)
+
+    camera.release()
+    cv2.destroyAllWindows()

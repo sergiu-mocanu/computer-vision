@@ -10,7 +10,7 @@ from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.anomaly.scorer import AnomalyScorer
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import apply_gamma, is_image_unchanged, write_image_locally
+from webcam_cv.utils.image import is_scene_static, write_image_locally
 
 
 def run_anomaly_app(config: AppConfig) -> None:
@@ -27,13 +27,13 @@ def run_anomaly_app(config: AppConfig) -> None:
     camera = Camera()
 
     mode_spec = MODE_REGISTRY[config.app_mode]
-    embedder = cast(DinoV2Embedder, create_model_from_spec(mode_spec))
+    embedder = cast(DinoV2Embedder, create_model_from_spec(config, mode_spec))
     scorer = AnomalyScorer(
         z_threshold=config.anomaly_z_threshold,
         ema_alpha=config.ema_alpha
     )
 
-    print(f'Running Anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'} ')
+    print(f'Running Anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Model: {embedder.model_name}\n')
 
     print('Controls:')
@@ -72,7 +72,7 @@ def run_anomaly_app(config: AppConfig) -> None:
             print('Reference cleared')
 
         if key == ord('s'):
-            write_image_locally(frame)
+            write_image_locally(config, display)
 
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
@@ -89,7 +89,7 @@ def run_anomaly_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         if scorer.reference_embedding is not None and frame_index % config.inference_frame_stride == 0:
             if previous_frame is not None:
-                if is_image_unchanged(frame, previous_frame):
+                if is_scene_static(frame, previous_frame):
                     continue
 
             previous_frame = frame

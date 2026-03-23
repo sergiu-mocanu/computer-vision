@@ -9,7 +9,7 @@ from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import is_image_unchanged, write_image_locally
+from webcam_cv.utils.image import is_scene_static, write_image_locally
 
 
 
@@ -27,7 +27,7 @@ def run_labelling_app(config: AppConfig) -> None:
     camera = Camera()
 
     mode_spec = MODE_REGISTRY[config.app_mode]
-    embedder = cast(ClipEmbedder, create_model_from_spec(mode_spec))
+    embedder = cast(ClipEmbedder, create_model_from_spec(config, mode_spec))
 
     frame_index = 0
     last_infer_ms = 0.0
@@ -65,14 +65,14 @@ def run_labelling_app(config: AppConfig) -> None:
             break
 
         if key == ord('s'):
-            write_image_locally(frame)
+            write_image_locally(config, display)
 
         # --------------------------------------------------------
         # Compute image-prompt similarity
         # --------------------------------------------------------
         if frame_index % config.inference_frame_stride == 0:
             if previous_frame is not None:
-                if is_image_unchanged(frame, previous_frame):
+                if is_scene_static(frame, previous_frame):
                     continue
 
             start = time.perf_counter()

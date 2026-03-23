@@ -12,7 +12,7 @@ from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.utils.image import write_image_locally
-from webcam_cv.utils.image import is_image_unchanged
+from webcam_cv.utils.image import is_scene_static
 
 def run_pipeline_app(config: AppConfig) -> None:
     """Run in parallel the real-time webcam anomaly detection application (DINOv2)
@@ -34,11 +34,8 @@ def run_pipeline_app(config: AppConfig) -> None:
     detector_role = 'detector'
     classifier_role = 'classifier'
 
-    detector_spec = mode_spec['models'][detector_role]
-    classifier_spec = mode_spec['models'][classifier_role]
-
-    detector = cast(DinoV2Embedder, create_model_from_spec(detector_spec, role=detector_role))
-    classifier = cast(ClipEmbedder, create_model_from_spec(classifier_spec, role=classifier_role))
+    detector = cast(DinoV2Embedder, create_model_from_spec(config=config, mode_spec=mode_spec, role=detector_role))
+    classifier = cast(ClipEmbedder, create_model_from_spec(config=config, mode_spec=mode_spec, role=classifier_role))
 
     scorer = AnomalyScorer(
         z_threshold=config.anomaly_z_threshold,
@@ -94,7 +91,7 @@ def run_pipeline_app(config: AppConfig) -> None:
             print('Reference cleared')
 
         if key == ord('s'):
-            write_image_locally(frame)
+            write_image_locally(config, display)
 
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
@@ -120,7 +117,7 @@ def run_pipeline_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         if scorer.reference_embedding is not None and frame_index % config.inference_frame_stride == 0:
             if previous_frame is not None:
-                if is_image_unchanged(frame, previous_frame):
+                if is_scene_static(frame, previous_frame):
                     continue
 
             previous_frame = frame

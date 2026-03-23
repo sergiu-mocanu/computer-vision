@@ -23,8 +23,8 @@ class ClipEmbedder(BaseEmbedder):
 
         if self.size not in CLIP_MODEL_NAMES:
             raise ValueError(
-                f'Unknown CLIP size: {self.size}. '
-                f'Expected one of: {list(self.AVAILABLE_SIZES)}'
+                f'Unknown CLIP size: {self.size}\n'
+                f'Expected one of: {self.AVAILABLE_SIZES}'
             )
 
         self.model_name = CLIP_MODEL_NAMES[self.size]

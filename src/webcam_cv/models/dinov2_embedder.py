@@ -24,7 +24,7 @@ class DinoV2Embedder(BaseEmbedder):
     """Vision transformer embedder using the DINOv2 foundation model."""
     MODEL_TYPE: str = 'dinov2'
     DEFAULT_SIZE: str = 'base'
-    AVAILABLE_SIZES: list[str] = tuple(DINOv2_MODEL_NAMES.keys())
+    AVAILABLE_SIZES: list[str] = list(DINOv2_MODEL_NAMES.keys())
 
     def __init__(self, device: str, size: str | None = None, use_fast: bool = False):
         self.device = device
@@ -32,7 +32,7 @@ class DinoV2Embedder(BaseEmbedder):
 
         if self.size not in DINOv2_MODEL_NAMES:
             raise ValueError(
-                f'Unknown DINOv2 model size: {self.size}. '
+                f"Unknown DINOv2 model size: '{self.size}'\n"
                 f'Expected one of {self.AVAILABLE_SIZES}.'
             )
 

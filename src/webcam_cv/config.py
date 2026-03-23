@@ -6,9 +6,9 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'pipeline'
+    app_mode: str = 'segmentation'
 
-    model_size: str = None
+    model_size: str = 'large'
 
     reference_frame_stride: int = 2
     inference_frame_stride: int = 2
@@ -21,7 +21,7 @@ class AppConfig:
     window_name: str = 'Webcam CV Prototype'
     window_width: int = 900
     window_height: int = 720
-    gamma: float = 0.7
+    gamma: float = 0.8
 
     saved_photos_folder: str = os.path.join(str(Path.home()), 'com-vis-photos')
 
