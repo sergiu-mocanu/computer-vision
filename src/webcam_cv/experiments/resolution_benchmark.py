@@ -6,18 +6,19 @@ import time
 import numpy as np
 import torch.nn.functional as F
 
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.config import AppConfig
 from webcam_cv.display import draw_text, show
 from webcam_cv.utils.image import reduce_res
 from webcam_cv.models.base import BaseEmbedder
-from webcam_cv.models.factory import create_embedder
+from webcam_cv.models.factory import create_model_from_spec
 
 image_sizes = [1080, 768, 640, 512, 384, 256, 224]
 
 exp_res_type = dict[float, list[float]]
 
 
-def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 20,
+def run_benchmark(embedder: BaseEmbedder, nb_frames: int = 20,
                   delay_ms: float = 100, nb_runs:int = 5) -> Tuple[exp_res_type, exp_res_type]:
     """Estimate the optimal input resolution for a vision embedding model by balancing
     computational cost and embedding fidelity.
@@ -45,7 +46,7 @@ def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 20,
             f'Capturing frame: {current_frame + 1}/{nb_frames}',
             30
         )
-        show('', frame_display)
+        show(AppConfig(), frame_display)
 
         cv2.waitKey(delay_ms)
 
@@ -62,13 +63,13 @@ def run_benchmark(embeder: BaseEmbedder, nb_frames: int = 20,
         resized_versions = {s: reduce_res(frame, s) for s in image_sizes}
 
         # Reference embedding for this frame
-        base = embeder.embed(resized_versions[baseline_size], reduce_img_size=False)
+        base = embedder.embed(resized_versions[baseline_size], reduce_img_size=False)
 
         # Run embedding simulations: measure time and embedding similarity
         for s in image_sizes:
             for _ in range(nb_runs):
                 start = time.perf_counter()
-                emb = embeder.embed(resized_versions[s], reduce_img_size=False)
+                emb = embedder.embed(resized_versions[s], reduce_img_size=False)
                 elapsed = time.perf_counter() - start
                 times[s].append(elapsed)
 
@@ -127,9 +128,16 @@ def compute_optimal_resolution(list_time: exp_res_type, list_sim: exp_res_type, 
             best_time = avg_time
             best_size = s
 
-    print(f'\nBest size for similarity threshold {threshold}: {best_size}')
+    print(f'\nBest size for similarity threshold {threshold}: {best_size}\n')
 
 
-embedder = create_embedder(AppConfig(model_type='dinov2'))
-list_times, list_sims = run_benchmark(embedder)
-compute_optimal_resolution(list_times, list_sims)
+def run_and_compute(app_mode: str, model_size: str = None):
+    config = AppConfig(app_mode=app_mode, model_size=model_size)
+    mode_spec = MODE_REGISTRY[app_mode]
+
+    embedder = create_model_from_spec(config, mode_spec)
+    list_times, list_sims = run_benchmark(embedder)
+    compute_optimal_resolution(list_times, list_sims)
+
+
+run_and_compute('anomaly')
