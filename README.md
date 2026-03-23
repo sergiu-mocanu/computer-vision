@@ -74,6 +74,10 @@ CLIP (image–text similarity)
 Semantic label + confidence
 ```
 
+### 4. Image Segmentation Mode (SAM)
+
+Select top-k regions from a frozen image.
+
 ---
 
 ## Features
@@ -184,6 +188,15 @@ model_size = 'base'  # or 'None'
 | s   | save frame |
 | q   | quit       |
 
+
+### Segmentation mode
+
+| Key | Action                            |
+|-----|-----------------------------------|
+| f   | freeze frame and run segmentation |
+| r   | return to live webcam feed        |
+| s   | save frame                        |
+| q   | quit                              |
 
 ---
 
