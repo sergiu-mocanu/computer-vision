@@ -2,6 +2,7 @@ import time
 
 import cv2
 import numpy as np
+from distinctipy import distinctipy
 
 from webcam_cv.camera import Camera
 from webcam_cv.config import AppConfig
@@ -85,18 +86,22 @@ def run_segmentation_app(config: AppConfig) -> None:
             # --------------------------------------------------------
             if masks:
                 ranked_masks = rank_masks(masks)
+                colors = distinctipy.get_colors(len(ranked_masks))
+                colors_rgb = [(int(r * 255), int(g * 255), int(b * 255)) for r, g, b in colors]
 
                 y = 25
                 if ranked_masks:
-                    for idx, candidate in enumerate(ranked_masks[:3]):
+                    top_masks = 4
+
+                    for idx, candidate in enumerate(ranked_masks[:top_masks]):
                         current_mask = ranked_masks[idx].mask
                         preview_frame = overlay_mask(preview_frame, current_mask)
-                        preview_frame = draw_mask_contour(preview_frame, current_mask)
+                        preview_frame = draw_mask_contour(preview_frame, current_mask, colors_rgb[idx])
                         draw_mask_metadata(preview_frame, candidate, idx, y)
                         y += 25
 
-                    for idx, candidate in enumerate(ranked_masks[:3]):
-                        draw_mask_center(preview_frame, candidate, idx)
+                    for idx, candidate in enumerate(ranked_masks[:top_masks]):
+                        draw_mask_center(preview_frame, candidate, idx, colors_rgb[idx])
 
                 # for mask_index in range(5):
                 #     mask = np.asarray(masks[mask_index], dtype=bool)

@@ -1,11 +1,11 @@
 import random
+from typing import Tuple
 
 import cv2
 import numpy as np
-from typing import Tuple
+
 
 from webcam_cv.models.sam.mask_candidate import MaskCandidate
-from webcam_cv.models.sam.mask_ranker import compute_mask_center
 
 
 def overlay_mask(frame: np.ndarray, mask: np.ndarray) -> np.ndarray:
@@ -38,7 +38,7 @@ def draw_mask_metadata(frame: np.ndarray, candidate: MaskCandidate, rank: int, y
     )
 
 
-def draw_mask_center(frame: np.ndarray, candidate: MaskCandidate, rank: int) -> None:
+def draw_mask_center(frame: np.ndarray, candidate: MaskCandidate, rank: int, color: Tuple[int, int, int]) -> None:
     text = f'#{rank}'
 
     mask_cx, mask_cy = candidate.mask_center
@@ -49,18 +49,14 @@ def draw_mask_center(frame: np.ndarray, candidate: MaskCandidate, rank: int) -> 
         (mask_cx, mask_cy),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.5,
-        (200, 0, 200),
+        color,
         1,
         cv2.LINE_AA,
     )
 
 
-def draw_mask_contour(frame: np.ndarray, mask: np.ndarray) -> np.ndarray:
+def draw_mask_contour(frame: np.ndarray, mask: np.ndarray, color: Tuple[int, int, int]) -> np.ndarray:
     """Draw the contour of a binary mask on the frame."""
-    ran_r = random.randint(0, 255)
-    ran_g = random.randint(0, 255)
-    ran_b = random.randint(0, 255)
-    color = (ran_g, ran_b, ran_r)
 
     result = frame.copy()
     mask_uint8 = mask.astype(np.uint8) * 255
