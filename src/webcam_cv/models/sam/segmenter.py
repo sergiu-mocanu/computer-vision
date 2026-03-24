@@ -37,9 +37,9 @@ class SamSegmenter:
         )
 
 
-    def generate_masks(self, frame_bgr: np.ndarray, reduce_img_size: bool = False) -> list[dict]:
+    def generate_masks(self, frame_bgr: np.ndarray, reduce_img_size: bool = True) -> list[dict]:
         """Generate segmentation masks for the input frame."""
-        frame = prepare_frame(frame_bgr, reduce_img_size)
+        frame = prepare_frame(frame_bgr, reduce_img_size, max_width=1024)
         image = bgr_2_pil(frame)
         outputs = self.generator(image)
         return outputs['masks']

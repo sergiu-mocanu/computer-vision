@@ -8,7 +8,7 @@ import torch
 class AppConfig:
     app_mode: str = 'segmentation'
 
-    model_size: str = 'large'
+    model_size: str = 'base'
 
     reference_frame_stride: int = 2
     inference_frame_stride: int = 2

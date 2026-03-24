@@ -2,7 +2,7 @@ from typing import Union
 
 from webcam_cv.config import AppConfig
 from webcam_cv.models.base import BaseEmbedder
-from webcam_cv.models.sam_segmenter import SamSegmenter
+from webcam_cv.models.sam.segmenter import SamSegmenter
 
 
 def create_model_from_spec(config: AppConfig, mode_spec: dict,

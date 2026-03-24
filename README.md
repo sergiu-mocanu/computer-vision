@@ -106,7 +106,9 @@ src/webcam_cv/
 ├── app_modes/
 │   ├── anomaly_app.py
 │   ├── labeling_app.py.py
-│   └── pipeline_app.py
+│   ├── pipeline_app.py
+│   ├── seggmentation_app.py
+│   └── mode_registry.py
 ├── anomaly/
 │   └── scorer.py
 ├── experiments
