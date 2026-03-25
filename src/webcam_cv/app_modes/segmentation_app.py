@@ -95,7 +95,6 @@ def run_segmentation_app(config: AppConfig) -> None:
 
                     for idx, candidate in enumerate(ranked_masks[:top_masks]):
                         current_mask = ranked_masks[idx].mask
-                        preview_frame = overlay_mask(preview_frame, current_mask)
                         preview_frame = draw_mask_contour(preview_frame, current_mask, colors_rgb[idx])
                         draw_mask_metadata(preview_frame, candidate, idx, y)
                         y += 25
