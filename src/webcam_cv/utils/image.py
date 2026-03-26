@@ -22,7 +22,12 @@ def apply_gamma(config: AppConfig, frame: np.ndarray):
     return cv2.LUT(frame, table)
 
 
-def reduce_res(frame: np.ndarray, max_width: int = 384) -> np.ndarray:
+def adjust_brightness_contrast(config: AppConfig, frame: np.ndarray) -> np.ndarray:
+    """Adjust global contrast and brightness."""
+    return cv2.convertScaleAbs(frame, alpha=config.contrast, beta=config.brightness)
+
+
+def reduce_res(frame: np.ndarray, max_width: int) -> np.ndarray:
     """Reduce image resolution while keeping the aspect ratio.
 
     Reducing the resolution saves computational resources.
@@ -63,5 +68,5 @@ def write_image_locally(config: AppConfig, frame: np.ndarray) -> None:
     if not os.path.exists(folder_path):
         os.makedirs(config.saved_photos_folder)
 
-    cv2.imwrite(filepath, frame)
+    cv2.imwrite(filename=filepath, img=frame)
     print(f'Saved {filepath}')

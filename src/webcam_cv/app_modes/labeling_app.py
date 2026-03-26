@@ -64,9 +64,6 @@ def run_labelling_app(config: AppConfig) -> None:
         if key == ord('q'):
             break
 
-        if key == ord('s'):
-            write_image_locally(config, display)
-
         # --------------------------------------------------------
         # Compute image-prompt similarity
         # --------------------------------------------------------
@@ -100,6 +97,9 @@ def run_labelling_app(config: AppConfig) -> None:
 
 
         show(config, display)
+
+        if key == ord('s'):
+            write_image_locally(config, display)
 
     camera.release()
     cv2.destroyAllWindows()

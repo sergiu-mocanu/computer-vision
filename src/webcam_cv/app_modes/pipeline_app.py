@@ -90,9 +90,6 @@ def run_pipeline_app(config: AppConfig) -> None:
             best_score = None
             print('Reference cleared')
 
-        if key == ord('s'):
-            write_image_locally(config, display)
-
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
         # --------------------------------------------------------
@@ -161,6 +158,9 @@ def run_pipeline_app(config: AppConfig) -> None:
                     draw_text(display, f'Classifier inference: {last_classifier_ms:.1f} ms', 220, scale=0.6)
 
         show(config, display)
+
+        if key == ord('s'):
+            write_image_locally(config, display)
 
     camera.release()
     cv2.destroyAllWindows()

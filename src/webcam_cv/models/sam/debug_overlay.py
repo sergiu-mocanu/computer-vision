@@ -11,7 +11,7 @@ from webcam_cv.models.sam.mask_candidate import MaskCandidate
 def overlay_mask(frame: np.ndarray, mask: np.ndarray) -> np.ndarray:
     """Overlay a boolean mask on the frame."""
     result = frame.copy()
-    result[mask] = (0.6 * result[mask] + 0.4 * np.array([0, 255, 0])).astype(np.uint8)
+    result[mask] = (0.6 * result[mask] + 0.4 * np.array([0, 100, 0])).astype(np.uint8)
     return result
 
 

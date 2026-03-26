@@ -71,9 +71,6 @@ def run_anomaly_app(config: AppConfig) -> None:
             scorer.clear()
             print('Reference cleared')
 
-        if key == ord('s'):
-            write_image_locally(config, display)
-
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
         # --------------------------------------------------------
@@ -118,6 +115,9 @@ def run_anomaly_app(config: AppConfig) -> None:
                 draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 160)
 
         show(config, display)
+
+        if key == ord('s'):
+            write_image_locally(config, display)
 
     camera.release()
     cv2.destroyAllWindows()

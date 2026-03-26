@@ -61,7 +61,7 @@ def run_segmentation_app(config: AppConfig) -> None:
         if key == ord('q'):
             break
 
-        if key == ord('s'):
+        if key == ord('s') and frozen_frame is not None:
             write_image_locally(config, display)
 
         if key == ord('r'):

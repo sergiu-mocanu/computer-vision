@@ -1,7 +1,7 @@
 import cv2
 
 from webcam_cv.config import AppConfig
-from webcam_cv.utils.image import apply_gamma
+from webcam_cv.utils.image import apply_gamma, adjust_brightness_contrast
 
 
 class Camera:
@@ -15,8 +15,9 @@ class Camera:
 
 
     def read(self, config: AppConfig):
-        """Read a single frame from the webcam and apply gamma correction."""
+        """Read a single frame from the webcam and apply brightness, contrast and gamma correction."""
         ok, frame = self.cap.read()
+        frame = adjust_brightness_contrast(config, frame)
         frame = apply_gamma(config, frame)
         return ok, frame
 
