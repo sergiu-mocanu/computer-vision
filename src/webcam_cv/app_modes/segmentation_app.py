@@ -1,18 +1,14 @@
 import time
 
-import cv2
-import numpy as np
-from distinctipy import distinctipy
-
 from webcam_cv.camera import Camera
-from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.display import init_window, draw_text, show
 from webcam_cv.utils.image import write_image_locally
 
-from webcam_cv.models.sam.debug_overlay import overlay_mask, draw_mask_metadata, draw_mask_center, draw_mask_contour
+from webcam_cv.models.sam.debug_overlay import *
 from webcam_cv.models.sam.mask_ranker import rank_masks
+
 
 def run_segmentation_app(config: AppConfig) -> None:
     """Run interactive SAM segmentation on frozen webcam frames."""
@@ -86,27 +82,9 @@ def run_segmentation_app(config: AppConfig) -> None:
             # --------------------------------------------------------
             if masks:
                 ranked_masks = rank_masks(masks)
-                colors = distinctipy.get_colors(len(ranked_masks))
-                colors_rgb = [(int(r * 255), int(g * 255), int(b * 255)) for r, g, b in colors]
+                text_y = 25
 
-                y = 25
-                if ranked_masks:
-                    top_masks = 4
-
-                    for idx, candidate in enumerate(ranked_masks[:top_masks]):
-                        current_mask = ranked_masks[idx].mask
-                        preview_frame = draw_mask_contour(preview_frame, current_mask, colors_rgb[idx])
-                        draw_mask_metadata(preview_frame, candidate, idx, y)
-                        y += 25
-
-                    for idx, candidate in enumerate(ranked_masks[:top_masks]):
-                        draw_mask_center(preview_frame, candidate, idx, colors_rgb[idx])
-
-                # for mask_index in range(5):
-                #     mask = np.asarray(masks[mask_index], dtype=bool)
-                #     preview_frame = overlay_mask(preview_frame, mask)
-
-            preview_frame = np.asarray(preview_frame).astype(np.uint8)
+                preview_frame = draw_best_masks(config, display, ranked_masks, text_y)
 
         draw_text(display, 'Mode: SAM', 30)
         draw_text(display, f'Model: {segmenter.model_name}', 60)

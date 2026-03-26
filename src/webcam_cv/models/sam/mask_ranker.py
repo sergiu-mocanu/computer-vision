@@ -37,15 +37,6 @@ def compute_mask_center(mask: np.ndarray) -> Tuple[int, int]:
 
     return int(x), int(y)
 
-# def compute_mask_center(mask: np.ndarray) -> Tuple[float, float]:
-#     """Compute the center point of the mask."""
-#     ys, xs = np.where(mask)
-#
-#     mask_cx = int(xs.mean())
-#     mask_cy = int(ys.mean())
-#
-#     return mask_cx, mask_cy
-
 
 def compute_mask_center_distance(mask: np.ndarray) -> float:
     """Compute the normalized distance between the mask centroid and image center."""

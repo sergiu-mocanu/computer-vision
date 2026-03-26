@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'segmentation'
+    app_mode: str = 'pipeline'
 
     model_size: str = None
 
@@ -39,3 +39,7 @@ class AppConfig:
         'a car'
     ])
     labelling_top_k: int = 3
+
+    sam_debug_enabled: bool = True
+    sam_top_k_masks: int = 4
+    sam_show_mask_metadata: bool = True

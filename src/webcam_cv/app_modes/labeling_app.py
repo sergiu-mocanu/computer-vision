@@ -86,14 +86,14 @@ def run_labelling_app(config: AppConfig) -> None:
         draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 30)
 
         if best_prompt:
-            draw_text(display, f'Best prompt: {best_prompt}', 80)
-            draw_text(display, f'Confidence: {best_score:.3f}', 110)
+            draw_text(display, f'Best prompt: {best_prompt}', 70)
+            draw_text(display, f'Confidence: {best_score:.3f}', 100)
 
             top_k = prompt_scores[:config.labelling_top_k]
-            y = 160
+            y = 140
             for prompt, score in top_k:
                 draw_text(display, f'{prompt}: {score:.3f}', y, scale=0.6)
-                y += 30
+                y += 20
 
 
         show(config, display)

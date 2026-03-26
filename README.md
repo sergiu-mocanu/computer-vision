@@ -74,7 +74,7 @@ CLIP (image–text similarity)
 Semantic label + confidence
 ```
 
-### 4. Image Segmentation Mode (SAM)
+## 4. Image Segmentation Mode (SAM)
 
 Select top-k regions from a frozen image.
 
@@ -176,7 +176,7 @@ model_size = 'base'  # or 'None'
 ### Anomaly mode | Pipeline mode
 
 | Key | Action                  |
-| --- | ----------------------- |
+|-----|-------------------------|
 | r   | record reference frames |
 | c   | clear reference         |
 | s   | save frame              |
@@ -186,7 +186,7 @@ model_size = 'base'  # or 'None'
 ### Labeling mode
 
 | Key | Action     |
-| --- | ---------- |
+|-----|------------|
 | s   | save frame |
 | q   | quit       |
 
@@ -205,7 +205,7 @@ model_size = 'base'  # or 'None'
 ## Available Models
 
 | Model  | Variants           | Purpose                     |
-| ------ | ------------------ | --------------------------- |
+|--------|--------------------|-----------------------------|
 | dinov2 | small, base, large | visual embeddings / anomaly |
 | clip   | base, large        | image–text similarity       |
 

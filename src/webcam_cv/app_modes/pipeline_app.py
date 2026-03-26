@@ -14,6 +14,7 @@ from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.utils.image import write_image_locally
 from webcam_cv.utils.image import is_scene_static
 
+
 def run_pipeline_app(config: AppConfig) -> None:
     """Run in parallel the real-time webcam anomaly detection application (DINOv2)
     and the text-image similarity application (CLIP).
