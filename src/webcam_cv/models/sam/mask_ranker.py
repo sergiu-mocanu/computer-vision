@@ -38,6 +38,50 @@ def compute_mask_center(mask: np.ndarray) -> Tuple[int, int]:
     return int(x), int(y)
 
 
+def compute_iou(mask_a: np.ndarray, mask_b: np.ndarray) -> float:
+    """Compute intersection over union of two boolean masks."""
+    intersection = np.logical_and(mask_a, mask_b).sum()
+    union = np.logical_or(mask_a, mask_b).sum()
+
+    if union == 0:
+        return 0.0
+
+    return float(intersection / union)
+
+
+def compute_containment_ratio(inner: np.ndarray, outer: np.ndarray) -> float:
+    """Compute how much of the first mask is covered by the second."""
+    intersection = np.logical_and(inner, outer).sum()
+    inner_area = inner.sum()
+
+    if inner_area == 0:
+        return 0.0
+
+    return float(intersection / inner_area)
+
+
+def suppress_contained_masks(candidates: list[MaskCandidate], iou_threshold: float = 0.90,
+                             containment_threshold: float = 0.95) -> list[MaskCandidate]:
+    """Remove masks that are near-duplicates or strongly contained in larger masks."""
+    kept: list[MaskCandidate] = []
+
+    for candidate in candidates:
+        should_keep = True
+
+        for kept_candidate in kept:
+            iou = compute_iou(candidate, kept_candidate)
+            containment = compute_containment_ratio(candidate, kept_candidate)
+
+            if iou >= iou_threshold or containment >= containment_threshold:
+                should_keep = False
+                break
+
+        if should_keep:
+            kept.append(candidate)
+
+    return kept
+
+
 def compute_mask_center_distance(mask: np.ndarray) -> float:
     """Compute the normalized distance between the mask centroid and image center."""
     ys, xs = np.where(mask)
@@ -77,11 +121,13 @@ def score_mask_candidate(candidate: MaskCandidate) -> float:
     return area_score + center_score - border_penalty
 
 
-def rank_masks(masks: list[dict]) -> list[MaskCandidate]:
+def rank_masks(masks: list[MaskCandidate]) -> list[MaskCandidate]:
     """Filter, score, and rank SAM masks."""
     candidates: list[MaskCandidate] = []
 
-    for mask in masks:
+    filtered_masks = suppress_contained_masks(masks)
+
+    for mask in filtered_masks:
         mask_bool = np.asarray(mask).astype(bool)
 
         area_ratio = compute_mask_area_ratio(mask_bool)

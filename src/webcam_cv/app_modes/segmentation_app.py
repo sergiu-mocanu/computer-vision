@@ -21,6 +21,8 @@ def run_segmentation_app(config: AppConfig) -> None:
     mode_spec = MODE_REGISTRY[config.app_mode]
     segmenter = create_model_from_spec(config=config, mode_spec=mode_spec)
 
+    init_window(config)
+
     frame = None
     frozen_frame = None
     preview_frame = None
@@ -34,8 +36,6 @@ def run_segmentation_app(config: AppConfig) -> None:
     print('  r = return to live view')
     print('  s = save current frame')
     print('  q = quit')
-
-    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop
