@@ -4,10 +4,17 @@ import numpy as np
 from webcam_cv.config import AppConfig
 
 
-def init_window(config: AppConfig) -> None:
+debug_window_name = "Debug"
+
+
+def init_window(config: AppConfig, debug_mode: bool = False) -> None:
     """Initialize display window."""
-    cv2.namedWindow(config.window_name, cv2.WINDOW_NORMAL)
-    cv2.resizeWindow(config.window_name, config.window_width, config.window_height)
+    if debug_mode:
+        cv2.namedWindow(debug_window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(debug_window_name, config.window_width, config.window_height)
+    else:
+        cv2.namedWindow(config.window_name, cv2.WINDOW_NORMAL)
+        cv2.resizeWindow(config.window_name, config.window_width, config.window_height)
 
 
 def draw_text(frame: np.ndarray, text: str, y: int, scale: float = 0.7) -> None:
@@ -23,6 +30,9 @@ def draw_text(frame: np.ndarray, text: str, y: int, scale: float = 0.7) -> None:
                 )
 
 
-def show(config: AppConfig, frame: np.ndarray) -> None:
+def show(config: AppConfig, frame: np.ndarray, debug_mode: bool = False) -> None:
     """Display a frame in an OpenCV window."""
-    cv2.imshow(config.window_name, frame)
+    if debug_mode:
+        cv2.imshow(debug_window_name, frame)
+    else:
+        cv2.imshow(config.window_name, frame)

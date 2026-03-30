@@ -26,6 +26,8 @@ def run_labelling_app(config: AppConfig) -> None:
     # --------------------------------------------------------
     camera = Camera()
 
+    init_window(config)
+
     mode_spec = MODE_REGISTRY[config.app_mode]
     embedder = cast(ClipEmbedder, create_model_from_spec(config, mode_spec))
 
@@ -42,8 +44,6 @@ def run_labelling_app(config: AppConfig) -> None:
     print('Controls:')
     print('  s = save current frame')
     print('  q = quit')
-
-    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop

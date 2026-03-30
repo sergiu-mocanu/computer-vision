@@ -30,11 +30,13 @@ def run_pipeline_app(config: AppConfig) -> None:
     # --------------------------------------------------------
     camera = Camera()
 
+    init_window(config)
+
+
     mode_spec = MODE_REGISTRY[config.app_mode]
 
     detector_role = 'detector'
     classifier_role = 'classifier'
-
     detector = cast(DinoV2Embedder, create_model_from_spec(config=config, mode_spec=mode_spec, role=detector_role))
     classifier = cast(ClipEmbedder, create_model_from_spec(config=config, mode_spec=mode_spec, role=classifier_role))
 
@@ -63,8 +65,6 @@ def run_pipeline_app(config: AppConfig) -> None:
     print('  c = clear reference')
     print('  s = save current frame')
     print('  q = quit')
-
-    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop

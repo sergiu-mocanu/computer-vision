@@ -1,8 +1,9 @@
-from typing import Tuple, cast
+from typing import Tuple
 
 import cv2
 import numpy as np
 
+from webcam_cv.config import AppConfig
 from webcam_cv.models.sam.mask_candidate import MaskCandidate
 
 
@@ -60,26 +61,29 @@ def compute_containment_ratio(inner: np.ndarray, outer: np.ndarray) -> float:
     return float(intersection / inner_area)
 
 
-def suppress_contained_masks(candidates: list[MaskCandidate], iou_threshold: float = 0.90,
-                             containment_threshold: float = 0.95) -> list[MaskCandidate]:
+def suppress_contained_masks(config: AppConfig, candidates: list[np.ndarray], iou_threshold: float = 0.90,
+                             containment_threshold: float = 0.95) -> Tuple[list[np.ndarray], int]:
     """Remove masks that are near-duplicates or strongly contained in larger masks."""
-    kept: list[MaskCandidate] = []
+    kept: list[np.ndarray] = []
+    nb_skipped_masks = 0
 
-    for candidate in candidates:
-        should_keep = True
+    while nb_skipped_masks < config.sam_top_k_masks:
+        for candidate in candidates:
+            should_keep = True
 
-        for kept_candidate in kept:
-            iou = compute_iou(candidate, kept_candidate)
-            containment = compute_containment_ratio(candidate, kept_candidate)
+            for kept_candidate in kept:
+                iou = compute_iou(candidate, kept_candidate)
+                containment = compute_containment_ratio(candidate, kept_candidate)
 
-            if iou >= iou_threshold or containment >= containment_threshold:
-                should_keep = False
-                break
+                if iou >= iou_threshold or containment >= containment_threshold:
+                    should_keep = False
+                    nb_skipped_masks += 1
+                    break
 
-        if should_keep:
-            kept.append(candidate)
+            if should_keep:
+                kept.append(candidate)
 
-    return kept
+    return kept, nb_skipped_masks
 
 
 def compute_mask_center_distance(mask: np.ndarray) -> float:
@@ -112,6 +116,22 @@ def mask_touches_border(mask: np.ndarray) -> bool:
     )
 
 
+def ndarray_to_mask_candidate(mask: np.ndarray) -> MaskCandidate:
+    """Wrap the mask array into MaskCandidate dataclass."""
+    area_ratio = compute_mask_area_ratio(mask)
+
+    candidate = MaskCandidate(
+        mask=mask,
+        area_ratio=area_ratio,
+        mask_center=compute_mask_center(mask),
+        center_distance=compute_mask_center_distance(mask),
+        touches_border=mask_touches_border(mask),
+    )
+    candidate.score = score_mask_candidate(candidate)
+
+    return candidate
+
+
 def score_mask_candidate(candidate: MaskCandidate) -> float:
     """Compute a heuristic score for a valid mask candidate."""
     area_score = 1.0 - abs(candidate.area_ratio - 0.20)
@@ -121,28 +141,23 @@ def score_mask_candidate(candidate: MaskCandidate) -> float:
     return area_score + center_score - border_penalty
 
 
-def rank_masks(masks: list[MaskCandidate]) -> list[MaskCandidate]:
+def rank_masks(config: AppConfig, masks: list[np.ndarray]) -> Tuple[list[MaskCandidate], int]:
     """Filter, score, and rank SAM masks."""
     candidates: list[MaskCandidate] = []
 
-    filtered_masks = suppress_contained_masks(masks)
+    filtered_masks, nb_skipped_masks = suppress_contained_masks(config, masks)
 
     for mask in filtered_masks:
-        mask_bool = np.asarray(mask).astype(bool)
+        candidate = ndarray_to_mask_candidate(mask)
 
-        area_ratio = compute_mask_area_ratio(mask_bool)
-        if not is_mask_area_valid(area_ratio):
+        mask_area = compute_mask_area_ratio(candidate.mask)
+        if not is_mask_area_valid(mask_area):
             continue
 
-        candidate = MaskCandidate(
-            mask=mask_bool,
-            area_ratio=area_ratio,
-            mask_center= compute_mask_center(mask_bool),
-            center_distance=compute_mask_center_distance(mask_bool),
-            touches_border=mask_touches_border(mask_bool),
-        )
         candidate.score = score_mask_candidate(candidate)
         candidates.append(candidate)
 
     candidates.sort(key=lambda c: c.score, reverse=True)
-    return candidates
+    candidates = candidates[:config.sam_top_k_masks]
+
+    return candidates, nb_skipped_masks

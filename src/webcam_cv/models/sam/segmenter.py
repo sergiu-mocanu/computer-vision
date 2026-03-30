@@ -34,10 +34,11 @@ class SamSegmenter:
             'mask-generation',
             model=self.model_name,
             device=device,
+            use_fast=False
         )
 
 
-    def generate_masks(self, frame_bgr: np.ndarray, reduce_img_size: bool = True) -> list[dict]:
+    def generate_masks(self, frame_bgr: np.ndarray, reduce_img_size: bool = True) -> list[np.ndarray]:
         """Generate segmentation masks for the input frame."""
         frame = prepare_frame(frame_bgr, reduce_img_size, max_width=1024)
         image = bgr_2_pil(frame)

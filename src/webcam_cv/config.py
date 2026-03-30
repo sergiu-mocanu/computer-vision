@@ -41,5 +41,5 @@ class AppConfig:
     labelling_top_k: int = 3
 
     sam_debug_enabled: bool = True
-    sam_top_k_masks: int = 4
     sam_show_mask_metadata: bool = True
+    sam_top_k_masks: int = 4

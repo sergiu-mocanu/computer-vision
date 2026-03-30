@@ -26,12 +26,18 @@ def run_anomaly_app(config: AppConfig) -> None:
     # --------------------------------------------------------
     camera = Camera()
 
+    init_window(config)
+
     mode_spec = MODE_REGISTRY[config.app_mode]
     embedder = cast(DinoV2Embedder, create_model_from_spec(config, mode_spec))
     scorer = AnomalyScorer(
         z_threshold=config.anomaly_z_threshold,
         ema_alpha=config.ema_alpha
     )
+
+    frame_index = 0
+    last_infer_ms = 0.0
+    previous_frame = None
 
     print(f'Running Anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Model: {embedder.model_name}\n')
@@ -41,12 +47,6 @@ def run_anomaly_app(config: AppConfig) -> None:
     print('  c = clear reference')
     print('  s = save current frame')
     print('  q = quit')
-
-    frame_index = 0
-    last_infer_ms = 0.0
-    previous_frame = None
-
-    init_window(config)
 
     # --------------------------------------------------------
     # Main realtime loop
