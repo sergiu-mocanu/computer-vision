@@ -22,9 +22,9 @@ class AppConfig:
     window_width: int = 900
     window_height: int = 720
 
-    gamma: float = 1.1
+    gamma: float = 1.2
     contrast: float = 0.95
-    brightness: int = -2
+    brightness: int = -3
 
     saved_photos_folder: str = os.path.join(str(Path.home()), 'com-vis-photos')
 

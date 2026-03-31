@@ -21,24 +21,6 @@ def is_mask_area_valid(area_ratio: float) -> bool:
     return min_area_ratio <= area_ratio <= max_area_ratio
 
 
-def compute_mask_center(mask: np.ndarray) -> Tuple[int, int]:
-    """Compute a stable integer center point for drawing inside a mask.
-
-    This uses the point farthest from the mask boundary rather than the
-    arithmetic mean of mask pixels. For irregular masks, this usually gives
-    a more visually relevant position for debug text.
-    """
-    mask_uint8 = mask.astype(np.uint8)
-
-    if not mask_uint8.any():
-        return 0, 0
-
-    dist = cv2.distanceTransform(mask_uint8, cv2.DIST_L2, 5)
-    y, x = np.unravel_index(np.argmax(dist), dist.shape)
-
-    return int(x), int(y)
-
-
 def compute_iou(mask_a: np.ndarray, mask_b: np.ndarray) -> float:
     """Compute intersection over union of two boolean masks."""
     intersection = np.logical_and(mask_a, mask_b).sum()
@@ -61,29 +43,103 @@ def compute_containment_ratio(inner: np.ndarray, outer: np.ndarray) -> float:
     return float(intersection / inner_area)
 
 
-def suppress_contained_masks(config: AppConfig, candidates: list[np.ndarray], iou_threshold: float = 0.90,
-                             containment_threshold: float = 0.95) -> Tuple[list[np.ndarray], int]:
+def suppress_contained_masks(
+    masks: list[np.ndarray],
+    iou_threshold: float = 0.85,
+    containment_threshold: float = 0.90,
+) -> list[np.ndarray]:
     """Remove masks that are near-duplicates or strongly contained in larger masks."""
-    kept: list[np.ndarray] = []
-    nb_skipped_masks = 0
+    suppressed: set[int] = set()
 
-    while nb_skipped_masks < config.sam_top_k_masks:
-        for candidate in candidates:
-            should_keep = True
+    for i, mask_a in enumerate(masks):
+        if i in suppressed:
+            continue
 
-            for kept_candidate in kept:
-                iou = compute_iou(candidate, kept_candidate)
-                containment = compute_containment_ratio(candidate, kept_candidate)
+        area_a = mask_a.sum()
 
-                if iou >= iou_threshold or containment >= containment_threshold:
-                    should_keep = False
-                    nb_skipped_masks += 1
-                    break
+        for j in range(i + 1, len(masks)):
+            if j in suppressed:
+                continue
 
-            if should_keep:
-                kept.append(candidate)
+            mask_b = masks[j]
+            area_b = mask_b.sum()
 
-    return kept, nb_skipped_masks
+            iou = compute_iou(mask_a, mask_b)
+            containment_a_in_b = compute_containment_ratio(mask_a, mask_b)
+            containment_b_in_a = compute_containment_ratio(mask_b, mask_a)
+
+            # Near-duplicate masks: keep the earlier one (higher-ranked).
+            if iou >= iou_threshold:
+                suppressed.add(j)
+                continue
+
+            # Containment: suppress the smaller contained mask.
+            if containment_a_in_b >= containment_threshold and area_a <= area_b:
+                suppressed.add(i)
+                break
+
+            if containment_b_in_a >= containment_threshold and area_b <= area_a:
+                suppressed.add(j)
+
+    return [mask for idx, mask in enumerate(masks) if idx not in suppressed]
+
+
+# def suppress_contained_masks(masks: list[np.ndarray], iou_threshold: float = 0.85,
+#                              containment_threshold: float = 0.90) -> list[np.ndarray]:
+#     """Remove masks that are near-duplicates or strongly contained in larger masks."""
+#     kept: list[np.ndarray] = []
+#     nb_skipped_masks = 0
+#
+#     for mask in masks:
+#         should_keep = True
+#
+#         for kept_mask in kept:
+#             iou = compute_iou(mask, kept_mask)
+#             containment = compute_containment_ratio(mask, kept_mask)
+#
+#             if iou >= iou_threshold or containment >= containment_threshold:
+#                 should_keep = False
+#                 nb_skipped_masks += 1
+#                 break
+#
+#         if should_keep:
+#             kept.append(mask)
+#
+#     return kept
+
+
+def compute_mask_center(mask: np.ndarray) -> Tuple[int, int]:
+    """Compute a stable integer center point for drawing inside a mask.
+
+    This uses the point farthest from the mask boundary rather than the
+    arithmetic mean of mask pixels. For irregular masks, this usually gives
+    a more visually relevant position for debug text.
+    """
+    mask_uint8 = mask.astype(np.uint8)
+
+    if not mask_uint8.any():
+        return 0, 0
+
+    dist = cv2.distanceTransform(mask_uint8, cv2.DIST_L2, 5)
+    y, x = np.unravel_index(np.argmax(dist), dist.shape)
+
+    return int(x), int(y)
+
+
+def compute_mask_centroid(mask: np.ndarray) -> Tuple[int, int]:
+    """Compute the centroid of a binary mask using image moments."""
+    mask_uint8 = mask.astype(np.uint8)
+
+    if not mask_uint8.any():
+        return 0, 0
+
+    moments = cv2.moments(mask_uint8)
+    if moments['m00'] == 0:
+        return 0, 0
+
+    cx = int(moments['m10'] / moments['m00'])
+    cy = int(moments['m01'] / moments['m00'])
+    return cx, cy
 
 
 def compute_mask_center_distance(mask: np.ndarray) -> float:
@@ -120,10 +176,22 @@ def ndarray_to_mask_candidate(mask: np.ndarray) -> MaskCandidate:
     """Wrap the mask array into MaskCandidate dataclass."""
     area_ratio = compute_mask_area_ratio(mask)
 
+    mask_center = compute_mask_center(mask)
+    h, w = mask.shape[:2]
+    cx, cy = mask_center
+
+    margin = 10
+    is_center_safe = margin <= cx < (w - margin) and margin <= cy < (h - margin)
+
+    # Check if computed center is within the image borders.
+    # If not, fallback to mask centroid.
+    if not is_center_safe:
+        mask_center = compute_mask_centroid(mask)
+
     candidate = MaskCandidate(
         mask=mask,
         area_ratio=area_ratio,
-        mask_center=compute_mask_center(mask),
+        mask_center=mask_center,
         center_distance=compute_mask_center_distance(mask),
         touches_border=mask_touches_border(mask),
     )
@@ -141,23 +209,23 @@ def score_mask_candidate(candidate: MaskCandidate) -> float:
     return area_score + center_score - border_penalty
 
 
-def rank_masks(config: AppConfig, masks: list[np.ndarray]) -> Tuple[list[MaskCandidate], int]:
+def rank_masks(config: AppConfig, masks: list[np.ndarray]) -> list[MaskCandidate]:
     """Filter, score, and rank SAM masks."""
     candidates: list[MaskCandidate] = []
 
-    filtered_masks, nb_skipped_masks = suppress_contained_masks(config, masks)
+    # filtered_masks, nb_skipped_masks = suppress_contained_masks(masks)
 
-    for mask in filtered_masks:
-        candidate = ndarray_to_mask_candidate(mask)
-
-        mask_area = compute_mask_area_ratio(candidate.mask)
+    for mask in masks:
+        mask_area = compute_mask_area_ratio(mask)
         if not is_mask_area_valid(mask_area):
             continue
+
+        candidate = ndarray_to_mask_candidate(mask)
 
         candidate.score = score_mask_candidate(candidate)
         candidates.append(candidate)
 
     candidates.sort(key=lambda c: c.score, reverse=True)
-    candidates = candidates[:config.sam_top_k_masks]
+    # candidates = candidates[:config.sam_top_k_masks]
 
-    return candidates, nb_skipped_masks
+    return candidates

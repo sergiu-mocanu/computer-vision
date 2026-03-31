@@ -1,5 +1,6 @@
 import time
 
+from webcam_cv.config import AppConfig
 from webcam_cv.camera import Camera
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
@@ -7,7 +8,8 @@ from webcam_cv.display import init_window, draw_text, show, debug_window_name
 from webcam_cv.utils.image import write_image_locally
 
 from webcam_cv.models.sam.debug_overlay import *
-from webcam_cv.models.sam.mask_ranker import rank_masks, ndarray_to_mask_candidate
+from webcam_cv.models.sam.mask_ranker import rank_masks, ndarray_to_mask_candidate, suppress_contained_masks, \
+    is_mask_area_valid, compute_mask_area_ratio
 
 
 def run_segmentation_app(config: AppConfig) -> None:
@@ -87,23 +89,26 @@ def run_segmentation_app(config: AppConfig) -> None:
             # Select top-k masks (regions)
             # --------------------------------------------------------
             if masks:
-                ranked_masks, nb_filtered_masks = rank_masks(config, masks)
+
+                filtered_masks = suppress_contained_masks(masks)
+                filtered_masks = list(filter(lambda m: is_mask_area_valid(compute_mask_area_ratio(m)), filtered_masks))[:10]
+
+                ranked_masks = rank_masks(config, filtered_masks)
+
                 text_y = 25
 
-                preview_frame = draw_masks(display, ranked_masks, text_y)
+                preview_frame = draw_masks(display, ranked_masks, text_y, draw_metadata=False)
 
                 if config.sam_debug_enabled and freeze_mode_enabled:
                     init_window(config, debug_mode=config.sam_debug_enabled)
 
-                    debug_nb_masks =  nb_filtered_masks + len(ranked_masks)
-                    ranked_and_filtered_masks = masks[:debug_nb_masks]
-                    ranked_and_filtered_masks = list(
+                    filtered_masks = list(
                         map(
                             lambda m: ndarray_to_mask_candidate(m),
-                            ranked_and_filtered_masks)
+                            filtered_masks)
                     )
 
-                    debug_preview_frame = draw_masks(display, ranked_and_filtered_masks, text_y, draw_metadata=False)
+                    debug_preview_frame = draw_masks(display, filtered_masks, text_y, draw_metadata=False)
 
 
         draw_text(display, 'Mode: SAM', 30)

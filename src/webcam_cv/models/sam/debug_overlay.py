@@ -4,7 +4,6 @@ import cv2
 import numpy as np
 from distinctipy import distinctipy
 
-from webcam_cv.config import AppConfig
 from webcam_cv.models.sam.mask_candidate import MaskCandidate
 
 
