@@ -82,15 +82,16 @@ def draw_masks(preview_frame: np.ndarray, masks: list[MaskCandidate],
     """Display all the relevant mask information on the debugging overlay."""
 
     distinct_colors = generate_distinct_colors(len(masks))
+    current_y = text_y
 
     for idx, candidate in enumerate(masks):
         current_mask = masks[idx].mask
         preview_frame = draw_mask_contour(preview_frame, current_mask, distinct_colors[idx])
 
         if draw_metadata:
-            draw_mask_metadata(preview_frame, candidate, idx, text_y)
+            draw_mask_metadata(preview_frame, candidate, idx, current_y)
 
-        text_y += 25
+        current_y += text_y
 
     for idx, candidate in enumerate(masks):
         draw_mask_center(preview_frame, candidate, idx, distinct_colors[idx])

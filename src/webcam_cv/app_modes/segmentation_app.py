@@ -1,8 +1,10 @@
 import time
+from typing import cast, Optional
 
 from webcam_cv.config import AppConfig
 from webcam_cv.camera import Camera
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
+from webcam_cv.models.sam.segmenter import SamSegmenter
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.display import init_window, draw_text, show, debug_window_name
 from webcam_cv.utils.image import write_image_locally
@@ -23,10 +25,10 @@ def run_segmentation_app(config: AppConfig) -> None:
     init_window(config)
 
     mode_spec = MODE_REGISTRY[config.app_mode]
-    segmenter = create_model_from_spec(config=config, mode_spec=mode_spec)
+    segmenter = cast(SamSegmenter, create_model_from_spec(config, mode_spec))
 
-    frame = None
-    frozen_frame = None
+    frame: Optional[np.ndarray] = None
+    frozen_frame: Optional[np.ndarray] = None
     preview_frame = None
     last_infer_ms = 0.0
     debug_preview_frame = None
@@ -51,6 +53,7 @@ def run_segmentation_app(config: AppConfig) -> None:
                 break
             display = frame.copy()
         else:
+            assert preview_frame is not None
             display = preview_frame.copy()
 
         key = cv2.waitKey(1) & 0xFF
@@ -79,6 +82,7 @@ def run_segmentation_app(config: AppConfig) -> None:
             assert frame is not None
             frozen_frame = frame.copy()
 
+            assert frozen_frame is not None
             start = time.perf_counter()
             masks = segmenter.generate_masks(frozen_frame)
             last_infer_ms = (time.perf_counter() - start) * 1000.0
@@ -89,16 +93,20 @@ def run_segmentation_app(config: AppConfig) -> None:
             # Select top-k masks (regions)
             # --------------------------------------------------------
             if masks:
+                top_k_unranked_masks = 10
 
                 filtered_masks = suppress_contained_masks(masks)
-                filtered_masks = list(filter(lambda m: is_mask_area_valid(compute_mask_area_ratio(m)), filtered_masks))[:10]
+                filtered_masks = list(
+                    filter(lambda m: is_mask_area_valid(compute_mask_area_ratio(m)), filtered_masks)
+                )[:top_k_unranked_masks]
 
                 ranked_masks = rank_masks(config, filtered_masks)
 
                 text_y = 25
 
-                preview_frame = draw_masks(display, ranked_masks, text_y, draw_metadata=False)
+                preview_frame = draw_masks(display, ranked_masks, text_y)
 
+                # Display the unranked masks for benchmarking/debug purposes
                 if config.sam_debug_enabled and freeze_mode_enabled:
                     init_window(config, debug_mode=config.sam_debug_enabled)
 

@@ -84,30 +84,6 @@ def suppress_contained_masks(
     return [mask for idx, mask in enumerate(masks) if idx not in suppressed]
 
 
-# def suppress_contained_masks(masks: list[np.ndarray], iou_threshold: float = 0.85,
-#                              containment_threshold: float = 0.90) -> list[np.ndarray]:
-#     """Remove masks that are near-duplicates or strongly contained in larger masks."""
-#     kept: list[np.ndarray] = []
-#     nb_skipped_masks = 0
-#
-#     for mask in masks:
-#         should_keep = True
-#
-#         for kept_mask in kept:
-#             iou = compute_iou(mask, kept_mask)
-#             containment = compute_containment_ratio(mask, kept_mask)
-#
-#             if iou >= iou_threshold or containment >= containment_threshold:
-#                 should_keep = False
-#                 nb_skipped_masks += 1
-#                 break
-#
-#         if should_keep:
-#             kept.append(mask)
-#
-#     return kept
-
-
 def compute_mask_center(mask: np.ndarray) -> Tuple[int, int]:
     """Compute a stable integer center point for drawing inside a mask.
 
@@ -180,11 +156,11 @@ def ndarray_to_mask_candidate(mask: np.ndarray) -> MaskCandidate:
     h, w = mask.shape[:2]
     cx, cy = mask_center
 
+    # Check if computed mask center is within the image borders.
+    # If not, fallback to mask centroid.
     margin = 10
     is_center_safe = margin <= cx < (w - margin) and margin <= cy < (h - margin)
 
-    # Check if computed center is within the image borders.
-    # If not, fallback to mask centroid.
     if not is_center_safe:
         mask_center = compute_mask_centroid(mask)
 
@@ -202,7 +178,7 @@ def ndarray_to_mask_candidate(mask: np.ndarray) -> MaskCandidate:
 
 def score_mask_candidate(candidate: MaskCandidate) -> float:
     """Compute a heuristic score for a valid mask candidate."""
-    area_score = 1.0 - abs(candidate.area_ratio - 0.20)
+    area_score = 1.0 - abs(candidate.area_ratio - 0.30)
     center_score = 1.0 - candidate.center_distance
     border_penalty = 0.25 if candidate.touches_border else 0.0
 
@@ -226,6 +202,6 @@ def rank_masks(config: AppConfig, masks: list[np.ndarray]) -> list[MaskCandidate
         candidates.append(candidate)
 
     candidates.sort(key=lambda c: c.score, reverse=True)
-    # candidates = candidates[:config.sam_top_k_masks]
+    candidates = candidates[:config.sam_top_k_masks]
 
     return candidates

@@ -7,8 +7,6 @@ dependencies:
   - qt-main
   - pillow
   - transformers
-  - pytorch
-  - pytorch-cuda
   - torchvision
   - fontconfig
   - freetype

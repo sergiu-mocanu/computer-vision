@@ -1,8 +1,7 @@
 opencv-python
 torch
-numpy
-pillow
-transformers
-torch
 torchvision
+transformers
+pillow
+numpy
 distinctipy
