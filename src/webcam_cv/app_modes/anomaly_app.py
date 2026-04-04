@@ -1,13 +1,15 @@
-import time
-from typing import cast
+from typing import cast, Optional
 
 import cv2
+import numpy as np
 
 from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
-from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.models.factory import create_model_from_spec
-from webcam_cv.anomaly.scorer import AnomalyScorer
+from webcam_cv.models.dinov2_embedder import DinoV2Embedder
+from webcam_cv.pipeline.anomaly_scorer import AnomalyScorer
+from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
+
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.utils.image import is_scene_static, write_image_locally
@@ -36,8 +38,11 @@ def run_anomaly_app(config: AppConfig) -> None:
     )
 
     frame_index = 0
-    last_infer_ms = 0.0
-    previous_frame = None
+    previous_frame: Optional[np.ndarray] = None
+
+    score = None
+    is_anomaly = False
+    elapsed_ms = None
 
     print(f'Running Anomaly mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Model: {embedder.model_name}\n')
@@ -56,7 +61,7 @@ def run_anomaly_app(config: AppConfig) -> None:
         if not ok:
             break
 
-        frame_index += 1
+        frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
         # --------------------------------------------------------
@@ -64,22 +69,20 @@ def run_anomaly_app(config: AppConfig) -> None:
         # --------------------------------------------------------
         key = cv2.waitKey(1) & 0xFF
 
-        if key == ord('q'):
-            break
-
         if key == ord('c'):
             scorer.clear()
             print('Reference cleared')
+
+        if key == ord('q'):
+            break
 
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
         # --------------------------------------------------------
         if key == ord('r'):
-            embeddings = embedder.collect_normal_frames(camera=camera, config=config)
-
-            if embeddings:
-                scorer.fit_reference(embeddings)
-                print('Reference embedding created')
+            embeddings = embedder.collect_normal_frames(config, camera)
+            scorer.fit_reference(embeddings)
+            print('Reference embedding created')
 
         # --------------------------------------------------------
         # Run inference and compute anomaly score
@@ -89,12 +92,9 @@ def run_anomaly_app(config: AppConfig) -> None:
                 if is_scene_static(frame, previous_frame):
                     continue
 
-            previous_frame = frame
+            score, is_anomaly, elapsed_ms = score_frame_anomaly(embedder, scorer, frame)
 
-            start = time.perf_counter()
-            embedding = embedder.embed(frame)
-            scorer.score(embedding)
-            last_infer_ms = (time.perf_counter() - start) * 1000
+            previous_frame = frame
 
         # --------------------------------------------------------
         # Render overlay and display frame
@@ -105,14 +105,16 @@ def run_anomaly_app(config: AppConfig) -> None:
         else:
             draw_text(display, 'Reference: ready', 30)
 
-            score = scorer.smoothed_score
-
             if score is not None:
-                status = 'ANOMALY' if scorer.is_anomaly(score) else 'NORMAL'
+                if is_anomaly:
+                    status = 'ANOMALY'
+                else:
+                    status = 'NORMAL'
+
                 draw_text(display, f'Status: {status}', 60)
                 draw_text(display, f'Anomaly score: {score:.4f}', 100)
                 draw_text(display, f'Threshold: {config.anomaly_z_threshold:.4f}', 130)
-                draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 160)
+                draw_text(display, f'Inference: {elapsed_ms:.1f} ms', 160)
 
         show(config, display)
 

@@ -1,17 +1,18 @@
-import time
 from typing import cast, Optional
 
-from webcam_cv.config import AppConfig
-from webcam_cv.camera import Camera
-from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
-from webcam_cv.models.sam.segmenter import SamSegmenter
-from webcam_cv.models.factory import create_model_from_spec
-from webcam_cv.display import init_window, draw_text, show, debug_window_name
-from webcam_cv.utils.image import write_image_locally
+import cv2
+import numpy as np
 
-from webcam_cv.models.sam.debug_overlay import *
-from webcam_cv.models.sam.mask_ranker import rank_masks, ndarray_to_mask_candidate, suppress_contained_masks, \
-    is_mask_area_valid, compute_mask_area_ratio
+from webcam_cv.config import AppConfig
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
+from webcam_cv.models.factory import create_model_from_spec
+from webcam_cv.models.sam_segmenter import SamSegmenter
+from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
+
+from webcam_cv.camera import Camera
+from webcam_cv.pipeline.sam.mask_overlay import draw_masks
+from webcam_cv.utils.image import write_image_locally
+from webcam_cv.display import init_window, draw_text, show, debug_window_name
 
 
 def run_segmentation_app(config: AppConfig) -> None:
@@ -29,10 +30,8 @@ def run_segmentation_app(config: AppConfig) -> None:
 
     frame: Optional[np.ndarray] = None
     frozen_frame: Optional[np.ndarray] = None
-    preview_frame = None
+    preview_frame: Optional[np.ndarray] = None
     last_infer_ms = 0.0
-    debug_preview_frame = None
-    freeze_mode_enabled = False
 
     print(f'Running Segmentation mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Model: {segmenter.model_name}\n')
@@ -49,11 +48,12 @@ def run_segmentation_app(config: AppConfig) -> None:
     while True:
         if frozen_frame is None:
             ok, frame = camera.read(config)
-            if not ok:
+            if frame is None:
                 break
             display = frame.copy()
         else:
-            assert preview_frame is not None
+            if preview_frame is None:
+                break
             display = preview_frame.copy()
 
         key = cv2.waitKey(1) & 0xFF
@@ -70,54 +70,22 @@ def run_segmentation_app(config: AppConfig) -> None:
         if key == ord('r'):
             frozen_frame = None
             preview_frame = None
-            freeze_mode_enabled = False
             cv2.destroyWindow(debug_window_name)
 
         # --------------------------------------------------------
-        # Run inference and segment areas of the image
+        # Run inference, segment and rank areas of the image
         # --------------------------------------------------------
         if key == ord('f') and frozen_frame is None:
-            freeze_mode_enabled = True
-
-            assert frame is not None
+            if frame is None:
+                break
             frozen_frame = frame.copy()
 
-            assert frozen_frame is not None
-            start = time.perf_counter()
-            masks = segmenter.generate_masks(frozen_frame)
-            last_infer_ms = (time.perf_counter() - start) * 1000.0
+            if frozen_frame is None:
+                break
+            ranked_masks, last_infer_ms = generate_ranked_masks(config, segmenter, frozen_frame)
 
-            preview_frame = frozen_frame.copy()
-
-            # --------------------------------------------------------
-            # Select top-k masks (regions)
-            # --------------------------------------------------------
-            if masks:
-                top_k_unranked_masks = 10
-
-                filtered_masks = suppress_contained_masks(masks)
-                filtered_masks = list(
-                    filter(lambda m: is_mask_area_valid(compute_mask_area_ratio(m)), filtered_masks)
-                )[:top_k_unranked_masks]
-
-                ranked_masks = rank_masks(config, filtered_masks)
-
-                text_y = 25
-
-                preview_frame = draw_masks(display, ranked_masks, text_y)
-
-                # Display the unranked masks for benchmarking/debug purposes
-                if config.sam_debug_enabled and freeze_mode_enabled:
-                    init_window(config, debug_mode=config.sam_debug_enabled)
-
-                    filtered_masks = list(
-                        map(
-                            lambda m: ndarray_to_mask_candidate(m),
-                            filtered_masks)
-                    )
-
-                    debug_preview_frame = draw_masks(display, filtered_masks, text_y, draw_metadata=False)
-
+            text_y = 25
+            preview_frame = draw_masks(display, ranked_masks, text_y)
 
         draw_text(display, 'Mode: SAM', 30)
         draw_text(display, f'Model: {segmenter.model_name}', 60)
@@ -128,14 +96,12 @@ def run_segmentation_app(config: AppConfig) -> None:
             draw_text(display, 'Frozen frame segmented', 100)
             draw_text(display, f'Inference: {last_infer_ms:.1f} ms', 130)
 
-        show(config, display if frozen_frame is None else preview_frame)
-        if config.sam_debug_enabled and freeze_mode_enabled:
-            if debug_preview_frame is not None:
-                show(
-                    config,
-                    display if frozen_frame is None else debug_preview_frame,
-                    debug_mode=config.sam_debug_enabled
-                )
+        if frozen_frame is None:
+            show(config, display)
+        else:
+            if preview_frame is None:
+                break
+            show(config, preview_frame)
 
     camera.release()
     cv2.destroyAllWindows()

@@ -64,6 +64,7 @@ class AnomalyScorer:
         reference = F.normalize(reference, dim=0)
         self.reference_embedding = reference
 
+        assert self.reference_embedding is not None
         # Measure how far each normal embedding is from the center
         distances = [
             cosine_distance(embedding, self.reference_embedding)
@@ -117,7 +118,7 @@ class AnomalyScorer:
                 + (1 - self.ema_alpha) * self.smoothed_score
             )
 
-        return float(self.smoothed_score)
+        return self.smoothed_score
 
 
     def is_anomaly(self, score: float) -> bool:

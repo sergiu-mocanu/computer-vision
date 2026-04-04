@@ -3,8 +3,7 @@ from typing import Tuple
 import cv2
 import numpy as np
 
-from webcam_cv.config import AppConfig
-from webcam_cv.models.sam.mask_candidate import MaskCandidate
+from webcam_cv.pipeline.sam.mask_candidate import MaskCandidate
 
 
 min_area_ratio: float = 0.01
@@ -185,11 +184,9 @@ def score_mask_candidate(candidate: MaskCandidate) -> float:
     return area_score + center_score - border_penalty
 
 
-def rank_masks(config: AppConfig, masks: list[np.ndarray]) -> list[MaskCandidate]:
-    """Filter, score, and rank SAM masks."""
+def rank_masks(masks: list[np.ndarray]) -> list[MaskCandidate]:
+    """Score and rank SAM masks."""
     candidates: list[MaskCandidate] = []
-
-    # filtered_masks, nb_skipped_masks = suppress_contained_masks(masks)
 
     for mask in masks:
         mask_area = compute_mask_area_ratio(mask)
@@ -202,6 +199,5 @@ def rank_masks(config: AppConfig, masks: list[np.ndarray]) -> list[MaskCandidate
         candidates.append(candidate)
 
     candidates.sort(key=lambda c: c.score, reverse=True)
-    candidates = candidates[:config.sam_top_k_masks]
 
     return candidates

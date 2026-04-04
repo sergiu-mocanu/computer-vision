@@ -45,7 +45,7 @@ def reduce_res(frame: np.ndarray, max_width: int) -> np.ndarray:
     return cv2.resize(frame, (new_w, new_h), interpolation=cv2.INTER_AREA)
 
 
-def is_scene_static(current_frame: np.ndarray, previous_frame: np.ndarray, threshold: int = 2) -> bool:
+def is_scene_static(current_frame: np.ndarray, previous_frame: np.ndarray, threshold: float = 1.5) -> bool:
     """Determine if the captured scene has been changed significantly.
 
     Skipping inference when change is negligible reduces computational resources.

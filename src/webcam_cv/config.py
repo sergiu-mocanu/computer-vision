@@ -34,11 +34,10 @@ class AppConfig:
     clip_prompts: list[str] = field(default_factory=lambda: [
         'a hand in front of the camera',
         'a person in front of the camera',
-        'an empty chair',
+        'a chair',
         'a mirror',
-        'a car'
+        'a door'
     ])
     labelling_top_k: int = 3
 
-    sam_debug_enabled: bool = False
     sam_top_k_masks: int = 4

@@ -1,18 +1,20 @@
-import time
 from typing import Optional, cast
 
 import cv2
+import numpy as np
 
 from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
-from webcam_cv.anomaly.scorer import AnomalyScorer
+from webcam_cv.pipeline.anomaly_scorer import AnomalyScorer
 from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.models.clip_embedder import ClipEmbedder
+from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
+from webcam_cv.pipeline.labeling_stage import select_best_image_prompts
+
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import write_image_locally
-from webcam_cv.utils.image import is_scene_static
+from webcam_cv.utils.image import write_image_locally, is_scene_static
 
 
 def run_pipeline_app(config: AppConfig) -> None:
@@ -37,8 +39,8 @@ def run_pipeline_app(config: AppConfig) -> None:
 
     detector_role = 'detector'
     classifier_role = 'classifier'
-    detector = cast(DinoV2Embedder, create_model_from_spec(config=config, mode_spec=mode_spec, role=detector_role))
-    classifier = cast(ClipEmbedder, create_model_from_spec(config=config, mode_spec=mode_spec, role=classifier_role))
+    detector = cast(DinoV2Embedder, create_model_from_spec(config, mode_spec, detector_role))
+    classifier = cast(ClipEmbedder, create_model_from_spec(config, mode_spec, classifier_role))
 
     scorer = AnomalyScorer(
         z_threshold=config.anomaly_z_threshold,
@@ -46,7 +48,7 @@ def run_pipeline_app(config: AppConfig) -> None:
     )
 
     frame_index = 0
-    previous_frame = None
+    previous_frame: Optional[np.ndarray] = None
     last_detector_ms = 0.0
     last_classifier_ms = 0.0
 
@@ -95,49 +97,36 @@ def run_pipeline_app(config: AppConfig) -> None:
         # Collect reference embeddings (normal scene modeling)
         # --------------------------------------------------------
         if key == ord('r'):
-            embeddings = detector.collect_normal_frames(camera=camera, config=config)
+            embeddings = detector.collect_normal_frames(config, camera)
 
-            if embeddings:
-                scorer.fit_reference(embeddings)
-                best_prompt = None
-                best_score = None
-                print('Reference embedding created')
+            scorer.fit_reference(embeddings)
+            print('Reference embedding created')
 
-            classifier_start = time.perf_counter()
-            prompt_scores = classifier.score_prompts(frame, config.clip_prompts)
-            last_classifier_ms = (time.perf_counter() - classifier_start) * 1000.0
+            prompt_scores, last_classifier_ms = select_best_image_prompts(config, classifier, frame)
 
-            if prompt_scores:
-                best_prompt, best_score = prompt_scores[0]
+            best_prompt, best_score = prompt_scores[0]
 
         # --------------------------------------------------------
         # Run inference and compute anomaly score
         # --------------------------------------------------------
         if scorer.reference_embedding is not None and frame_index % config.inference_frame_stride == 0:
+
             if previous_frame is not None:
                 if is_scene_static(frame, previous_frame):
                     continue
 
-            previous_frame = frame
-
-            detector_start = time.perf_counter()
-            embedding = detector.embed(frame)
-            smoothed_score = scorer.score(embedding)
-            last_detector_ms = (time.perf_counter() - detector_start) * 1000.0
-
-            if smoothed_score is not None:
-                is_anomaly = scorer.is_anomaly(smoothed_score)
+            smoothed_score, is_anomaly, last_detector_ms = score_frame_anomaly(detector, scorer, frame)
 
             # --------------------------------------------------------
             # Only run CLIP when anomaly is detected.
             # --------------------------------------------------------
             if is_anomaly:
-                classifier_start = time.perf_counter()
-                prompt_scores = classifier.score_prompts(frame, config.clip_prompts)
-                last_classifier_ms = (time.perf_counter() - classifier_start) * 1000.0
+                prompt_scores, last_classifier_ms = select_best_image_prompts(config, classifier, frame)
 
                 if prompt_scores:
                     best_prompt, best_score = prompt_scores[0]
+
+            previous_frame = frame
 
         # --------------------------------------------------------
         # Render overlay and display frame

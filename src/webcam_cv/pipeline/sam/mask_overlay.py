@@ -4,14 +4,14 @@ import cv2
 import numpy as np
 from distinctipy import distinctipy
 
-from webcam_cv.models.sam.mask_candidate import MaskCandidate
+from webcam_cv.pipeline.sam.mask_candidate import MaskCandidate
 
 
 contour_color = Tuple[int, int, int]
 
 
 def generate_distinct_colors(nb_colors: int) -> list[contour_color]:
-    """Generate visually distinct colors for mask debugging overlay."""
+    """Generate visually distinct colors for mask contour overlay."""
     colors = distinctipy.get_colors(nb_colors)
     colors_rgb = [(int(r * 255), int(g * 255), int(b * 255)) for r, g, b in colors]
 

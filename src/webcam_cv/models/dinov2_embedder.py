@@ -61,7 +61,7 @@ class DinoV2Embedder(BaseEmbedder):
         return embedding.squeeze(0).detach().cpu()
 
 
-    def collect_normal_frames(self, camera: Camera, config: AppConfig) -> list[torch.Tensor]:
+    def collect_normal_frames(self, config: AppConfig, camera: Camera) -> list[torch.Tensor]:
         """Collect normal frames as a baseline for the anomaly measurement."""
         embeddings = []
         collected = 0
