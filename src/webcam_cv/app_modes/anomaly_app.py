@@ -7,12 +7,12 @@ from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.models.dinov2_embedder import DinoV2Embedder
-from webcam_cv.pipeline.anomaly_scorer import AnomalyScorer
+from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
 from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
 
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import is_scene_static, write_image_locally
+from webcam_cv.image import is_scene_static, write_image_locally
 
 
 def run_anomaly_app(config: AppConfig) -> None:
@@ -32,10 +32,7 @@ def run_anomaly_app(config: AppConfig) -> None:
 
     mode_spec = MODE_REGISTRY[config.app_mode]
     embedder = cast(DinoV2Embedder, create_model_from_spec(config, mode_spec))
-    scorer = AnomalyScorer(
-        z_threshold=config.anomaly_z_threshold,
-        ema_alpha=config.ema_alpha
-    )
+    scorer = AnomalyScorer(config)
 
     frame_index = 0
     previous_frame: Optional[np.ndarray] = None

@@ -17,7 +17,7 @@ def init_window(config: AppConfig, debug_mode: bool = False) -> None:
         cv2.resizeWindow(config.window_name, config.window_width, config.window_height)
 
 
-def draw_text(frame: np.ndarray, text: str, y: int, scale: float = 0.7) -> None:
+def draw_text(frame: np.ndarray, text: str, y: int, scale: float = 0.6) -> None:
     """Draw status text on top of the webcam image."""
     cv2.putText(frame,
                 text=text,

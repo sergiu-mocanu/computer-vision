@@ -9,7 +9,7 @@ import torch.nn.functional as F
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.config import AppConfig
 from webcam_cv.display import draw_text, show
-from webcam_cv.utils.image import reduce_res
+from webcam_cv.image import reduce_res
 from webcam_cv.models.base import BaseEmbedder
 from webcam_cv.models.factory import create_model_from_spec
 

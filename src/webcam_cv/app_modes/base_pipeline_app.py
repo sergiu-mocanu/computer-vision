@@ -6,7 +6,7 @@ import numpy as np
 from webcam_cv.config import AppConfig
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
-from webcam_cv.pipeline.anomaly_scorer import AnomalyScorer
+from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
 from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
@@ -14,10 +14,10 @@ from webcam_cv.pipeline.labeling_stage import select_best_image_prompts
 
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import write_image_locally, is_scene_static
+from webcam_cv.image import write_image_locally, is_scene_static
 
 
-def run_pipeline_app(config: AppConfig) -> None:
+def run_base_pipeline_app(config: AppConfig) -> None:
     """Run in parallel the real-time webcam anomaly detection application (DINOv2)
     and the text-image similarity application (CLIP).
 
@@ -34,7 +34,6 @@ def run_pipeline_app(config: AppConfig) -> None:
 
     init_window(config)
 
-
     mode_spec = MODE_REGISTRY[config.app_mode]
 
     detector_role = 'detector'
@@ -42,23 +41,21 @@ def run_pipeline_app(config: AppConfig) -> None:
     detector = cast(DinoV2Embedder, create_model_from_spec(config, mode_spec, detector_role))
     classifier = cast(ClipEmbedder, create_model_from_spec(config, mode_spec, classifier_role))
 
-    scorer = AnomalyScorer(
-        z_threshold=config.anomaly_z_threshold,
-        ema_alpha=config.ema_alpha
-    )
+    scorer = AnomalyScorer(config)
 
     frame_index = 0
     previous_frame: Optional[np.ndarray] = None
     last_detector_ms = 0.0
     last_classifier_ms = 0.0
 
-    smoothed_score = None
+    score = None
     is_anomaly = False
 
     best_prompt: Optional[str] = None
     best_score: Optional[str] = None
 
     print('Mode: pipeline')
+    print(f'Running Base Pipeline mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Detector: {detector.model_name}')
     print(f'Classifier: {classifier.model_name}\n')
 
@@ -76,22 +73,22 @@ def run_pipeline_app(config: AppConfig) -> None:
         if not ok:
             break
 
-        frame_index += 1
+        frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
         key = cv2.waitKey(1) & 0xFF
 
         # --------------------------------------------------------
-        # Handle user input (record reference, save frame, etc.)
+        # Handle user input (record reference, save frame, reset normal stage)
         # --------------------------------------------------------
-        if key == ord('q'):
-            break
-
         if key == ord('c'):
             scorer.clear()
             best_prompt = None
             best_score = None
             print('Reference cleared')
+
+        if key == ord('q'):
+            break
 
         # --------------------------------------------------------
         # Collect reference embeddings (normal scene modeling)
@@ -115,7 +112,7 @@ def run_pipeline_app(config: AppConfig) -> None:
                 if is_scene_static(frame, previous_frame):
                     continue
 
-            smoothed_score, is_anomaly, last_detector_ms = score_frame_anomaly(detector, scorer, frame)
+            score, is_anomaly, last_detector_ms = score_frame_anomaly(detector, scorer, frame)
 
             # --------------------------------------------------------
             # Only run CLIP when anomaly is detected.
@@ -135,10 +132,10 @@ def run_pipeline_app(config: AppConfig) -> None:
             draw_text(display, 'Status: no reference yet (press r)', 30)
 
         else:
-            if smoothed_score is not None:
+            if score is not None:
                 status = 'ANOMALY' if is_anomaly else 'NORMAL'
                 draw_text(display, f'Status: {status}', 30)
-                draw_text(display, f'Anomaly score: {smoothed_score:.4f}', 60)
+                draw_text(display, f'Anomaly score: {score:.4f}', 60)
                 draw_text(display, f'Threshold: {config.anomaly_z_threshold:.2f}', 90)
                 draw_text(display, f'Detector inference: {last_detector_ms:.1f} ms', 120)
 

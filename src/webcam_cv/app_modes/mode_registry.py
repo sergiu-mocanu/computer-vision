@@ -13,15 +13,22 @@ MODE_REGISTRY = {
             'primary': {'model_cls': ClipEmbedder},
         }
     },
-    'pipeline': {
+    'segmentation': {
+        'models': {
+            'primary': {'model_cls': SamSegmenter}
+        }
+    },
+    'base_pipeline': {
         'models': {
             'detector': {'model_cls': DinoV2Embedder},
             'classifier': {'model_cls': ClipEmbedder, 'size': 'large'}
         }
     },
-    'segmentation': {
+    'segmented_pipeline': {
         'models': {
-            'primary': {'model_cls': SamSegmenter}
-        }
-    }
+            'detector': {'model_cls': DinoV2Embedder},
+            'segmenter': {'model_cls': SamSegmenter},
+            'classifier': {'model_cls': ClipEmbedder},
+        },
+    },
 }

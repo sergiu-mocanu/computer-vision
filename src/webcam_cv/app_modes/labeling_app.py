@@ -11,7 +11,7 @@ from webcam_cv.pipeline.labeling_stage import select_best_image_prompts
 
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.utils.image import is_scene_static, write_image_locally
+from webcam_cv.image import is_scene_static, write_image_locally
 
 
 def run_labelling_app(config: AppConfig) -> None:
@@ -84,9 +84,8 @@ def run_labelling_app(config: AppConfig) -> None:
             draw_text(display, f'Best prompt: {best_prompt}', 70)
             draw_text(display, f'Confidence: {best_score:.3f}', 100)
 
-            top_k = prompt_scores[1:config.labelling_top_k]
             y = 140
-            for prompt, score in top_k:
+            for prompt, score in prompt_scores[1:]:
                 draw_text(display, f'{prompt}: {score:.3f}', y, scale=0.6)
                 y += 20
 

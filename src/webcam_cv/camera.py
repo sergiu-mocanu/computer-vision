@@ -1,7 +1,7 @@
 import cv2
 
 from webcam_cv.config import AppConfig
-from webcam_cv.utils.image import apply_gamma, adjust_brightness_contrast
+from webcam_cv.image import apply_gamma, adjust_brightness_contrast
 
 
 class Camera:

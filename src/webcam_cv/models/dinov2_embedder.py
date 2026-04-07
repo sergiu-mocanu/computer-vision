@@ -9,7 +9,7 @@ from webcam_cv.config import AppConfig
 from webcam_cv.camera import Camera
 from webcam_cv.display import draw_text, show
 from webcam_cv.models.base import BaseEmbedder, prepare_frame
-from webcam_cv.utils.image import bgr_2_pil
+from webcam_cv.image import bgr_2_pil
 
 
 DINOv2_MODEL_NAMES = {

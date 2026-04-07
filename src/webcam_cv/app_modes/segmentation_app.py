@@ -11,7 +11,7 @@ from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
 
 from webcam_cv.camera import Camera
 from webcam_cv.pipeline.sam.mask_overlay import draw_masks
-from webcam_cv.utils.image import write_image_locally
+from webcam_cv.image import write_image_locally
 from webcam_cv.display import init_window, draw_text, show, debug_window_name
 
 

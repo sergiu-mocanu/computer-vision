@@ -2,6 +2,8 @@ import numpy as np
 import torch
 import torch.nn.functional as F
 
+from webcam_cv.config import AppConfig
+
 
 def cosine_distance(a: torch.Tensor, b: torch.Tensor) -> float:
     """Compute cosine distance between two embedding vectors."""
@@ -23,10 +25,10 @@ class AnomalyScorer:
     4. Smooth z-score with EMA
     """
 
-    def __init__(self, z_threshold: float, ema_alpha: float = 0.2, eps: float = 1e-6) -> None:
+    def __init__(self, config: AppConfig, eps: float = 1e-6) -> None:
         """Initialize the anomaly scorer."""
-        self.z_threshold = z_threshold
-        self.ema_alpha = ema_alpha
+        self.z_threshold = config.anomaly_z_threshold
+        self.ema_alpha = config.ema_alpha
         self.eps = eps
 
         self.reference_embedding: torch.Tensor | None = None

@@ -4,7 +4,7 @@ import torch.nn.functional as F
 from transformers import CLIPModel, CLIPProcessor
 
 from webcam_cv.models.base import BaseEmbedder, prepare_frame
-from webcam_cv.utils.image import bgr_2_pil
+from webcam_cv.image import bgr_2_pil
 
 CLIP_MODEL_NAMES = {
     'base': 'openai/clip-vit-base-patch32',

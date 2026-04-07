@@ -2,7 +2,7 @@ import time
 import numpy as np
 
 from webcam_cv.models.base import BaseEmbedder
-from webcam_cv.pipeline.anomaly_scorer import AnomalyScorer
+from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
 
 
 def score_frame_anomaly(

@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'segmentation'
+    app_mode: str = 'segmented_pipeline'
 
     model_size: str = None
 
@@ -35,9 +35,9 @@ class AppConfig:
         'a hand in front of the camera',
         'a person in front of the camera',
         'a chair',
-        'a mirror',
+        'a phone',
         'a door'
     ])
-    labelling_top_k: int = 3
+    clip_top_k_prompts: int = 3
 
     sam_top_k_masks: int = 4

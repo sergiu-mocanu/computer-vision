@@ -1,13 +1,12 @@
-from typing import Tuple
-
 import cv2
 import numpy as np
 from distinctipy import distinctipy
 
+from webcam_cv.pipeline.sam.crop_utils import compute_mask_bbox
 from webcam_cv.pipeline.sam.mask_candidate import MaskCandidate
 
 
-contour_color = Tuple[int, int, int]
+contour_color = tuple[int, int, int]
 
 
 def generate_distinct_colors(nb_colors: int) -> list[contour_color]:
@@ -47,7 +46,7 @@ def draw_mask_metadata(frame: np.ndarray, candidate: MaskCandidate, rank: int, y
     )
 
 
-def draw_mask_center(frame: np.ndarray, candidate: MaskCandidate, rank: int, color: Tuple[int, int, int]) -> None:
+def draw_mask_center(frame: np.ndarray, candidate: MaskCandidate, rank: int, color: tuple[int, int, int]) -> None:
     """Draw the ranking of a mask on the debugging display at its center."""
     text = f'#{rank}'
 
@@ -65,7 +64,7 @@ def draw_mask_center(frame: np.ndarray, candidate: MaskCandidate, rank: int, col
     )
 
 
-def draw_mask_contour(frame: np.ndarray, mask: np.ndarray, color: Tuple[int, int, int]) -> np.ndarray:
+def draw_mask_contour(frame: np.ndarray, mask: np.ndarray, color: tuple[int, int, int]) -> np.ndarray:
     """Draw the contour of a binary mask on the frame."""
 
     result = frame.copy()
@@ -77,26 +76,39 @@ def draw_mask_contour(frame: np.ndarray, mask: np.ndarray, color: Tuple[int, int
     return result
 
 
-def draw_masks(preview_frame: np.ndarray, masks: list[MaskCandidate],
+def draw_masks(frame: np.ndarray, masks: list[MaskCandidate],
                text_y: int, draw_metadata: bool = True) -> np.ndarray:
-    """Display all the relevant mask information on the debugging overlay."""
+    """Display all the relevant mask information on the window overlay."""
+    result = frame.copy()
 
     distinct_colors = generate_distinct_colors(len(masks))
     current_y = text_y
 
     for idx, candidate in enumerate(masks):
         current_mask = masks[idx].mask
-        preview_frame = draw_mask_contour(preview_frame, current_mask, distinct_colors[idx])
+        result = draw_mask_contour(result, current_mask, distinct_colors[idx])
 
         if draw_metadata:
-            draw_mask_metadata(preview_frame, candidate, idx, current_y)
+            draw_mask_metadata(frame, candidate, idx, current_y)
 
         current_y += text_y
 
     for idx, candidate in enumerate(masks):
-        draw_mask_center(preview_frame, candidate, idx, distinct_colors[idx])
+        draw_mask_center(result, candidate, idx, distinct_colors[idx])
 
-    return preview_frame
+    return result
 
 
+def draw_masks_bbox(frame: np.ndarray, masks: list[MaskCandidate], thickness: int = 2) -> np.ndarray:
+    """Draw the bounding box of a mask on the frame."""
+    result = frame.copy()
 
+    distinct_colors = generate_distinct_colors(len(masks))
+
+    for idx, candidate in enumerate(masks):
+        current_mask = masks[idx].mask
+        x_min, y_min, x_max, y_max = compute_mask_bbox(current_mask)
+
+        cv2.rectangle(result, (x_min, y_min), (x_max, y_max), distinct_colors[idx], thickness)
+
+    return result
