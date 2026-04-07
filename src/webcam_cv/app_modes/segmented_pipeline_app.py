@@ -20,7 +20,7 @@ from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
 from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
 from webcam_cv.pipeline.sam.mask_candidate import MaskCandidate
 from webcam_cv.pipeline.labeling_stage import select_best_mask_with_clip
-from webcam_cv.pipeline.sam.mask_overlay import draw_masks_bbox
+from webcam_cv.pipeline.sam.mask_overlay import draw_mask_bbox, generate_distinct_colors, draw_mask_center
 from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
 
 
@@ -28,9 +28,7 @@ from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
 class PipelineValues:
     latest_score: Optional[float] = None
     latest_is_anomaly = False
-    latest_best_label: Optional[str] = None
-    latest_best_confidence: Optional[float] = None
-    latest_best_candidate = None
+    mask_prompt_sim: Optional[tuple[MaskCandidate, str, float]] = None
     latest_ranked_masks: list[MaskCandidate] = field(default_factory=list)
 
     last_detector_ms = 0.0
@@ -41,16 +39,12 @@ class PipelineValues:
     def reset_latest_values(self):
         self.latest_score = None
         self.latest_is_anomaly = False
-        self.latest_best_label = None
-        self.latest_best_confidence = None
-        self.latest_best_candidate = None
+        self.mask_prompt_sim = None
         self.latest_ranked_masks = []
 
 
     def reset_segmenter_classifier_values(self):
-        self.latest_best_label = None
-        self.latest_best_confidence = None
-        self.latest_best_candidate = None
+        self.mask_prompt_sim = None
         self.latest_ranked_masks = []
         self.last_segmenter_ms = 0.0
         self.last_classifier_ms = 0.0
@@ -90,6 +84,8 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
     previous_frame: Optional[np.ndarray] = None
     last_anomaly_processing: Optional[float] = None
     anomaly_processing_delay_s = 4.0
+
+    distinct_colors = generate_distinct_colors(config.sam_top_k_masks)
 
     print(f'Running Segmented Pipeline mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Detector: {detector.model_name}')
@@ -165,10 +161,8 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
                     plval.latest_ranked_masks, plval.last_segmenter_ms = generate_ranked_masks(config, segmenter, frame)
 
                     (
-                        plval.latest_best_candidate,
-                        plval.latest_best_label,
-                        plval.latest_best_confidence,
-                        plval.last_classifier_ms,
+                        plval.mask_prompt_sim,
+                        plval.last_classifier_ms
                     ) = select_best_mask_with_clip(
                         classifier=classifier,
                         frame_bgr=frame,
@@ -182,21 +176,21 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
         else:
             if plval.latest_score is not None:
                 if plval.latest_is_anomaly:
-                    draw_text(display, f'Segmenter inference: {plval.last_segmenter_ms:.1f} ms', 150)
-                    draw_text(display, f'Classifier inference: {plval.last_classifier_ms:.1f} ms', 180)
 
-                    if plval.latest_best_candidate is not None:
-                        display = draw_masks_bbox(display, [plval.latest_best_candidate])
+                    if plval.mask_prompt_sim is not None:
+                        text_y = 60
 
-                    if plval.latest_best_label is not None and plval.latest_best_confidence is not None:
-                        draw_text(display, f'Label: {plval.latest_best_label}', 250, scale=0.6)
-                        draw_text(display, f'Confidence: {plval.latest_best_confidence:.3f}', 500, scale=0.6)
+                        for idx, (candidate, label, confidence) in enumerate(plval.mask_prompt_sim):
+                            draw_mask_bbox(display, candidate, distinct_colors[idx])
+                            draw_mask_center(display, candidate, idx+1, distinct_colors[idx])
+
+                            draw_text(display, f'Label #{idx+1}: {label} | '
+                                               f'Confidence: {confidence:.3f}', text_y, scale=0.6)
+                            # draw_text(display, f'Confidence: {confidence:.3f}', 500, scale=0.6)
+                            text_y += 30
 
                 status = 'ANOMALY' if plval.latest_is_anomaly else 'NORMAL'
                 draw_text(display, f'Status: {status}', 30)
-                draw_text(display, f'Anomaly score: {plval.latest_score:.4f}', 60)
-                draw_text(display, f'Threshold: {config.anomaly_z_threshold:.2f}', 90)
-                draw_text(display, f'Detector inference: {plval.last_detector_ms:.1f} ms', 120)
 
         show(config, display)
 

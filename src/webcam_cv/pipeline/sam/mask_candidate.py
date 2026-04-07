@@ -4,7 +4,7 @@ from typing import Tuple
 import numpy as np
 
 
-@dataclass
+@dataclass(eq=False)
 class MaskCandidate:
     """Container for a SAM-generated mask and its ranking metadata."""
     mask: np.ndarray

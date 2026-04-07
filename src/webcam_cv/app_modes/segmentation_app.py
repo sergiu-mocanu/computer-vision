@@ -12,7 +12,7 @@ from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
 from webcam_cv.camera import Camera
 from webcam_cv.pipeline.sam.mask_overlay import draw_masks
 from webcam_cv.image import write_image_locally
-from webcam_cv.display import init_window, draw_text, show, debug_window_name
+from webcam_cv.display import init_window, draw_text, show
 
 
 def run_segmentation_app(config: AppConfig) -> None:
@@ -70,7 +70,6 @@ def run_segmentation_app(config: AppConfig) -> None:
         if key == ord('r'):
             frozen_frame = None
             preview_frame = None
-            cv2.destroyWindow(debug_window_name)
 
         # --------------------------------------------------------
         # Run inference, segment and rank areas of the image

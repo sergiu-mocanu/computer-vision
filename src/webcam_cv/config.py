@@ -32,12 +32,12 @@ class AppConfig:
     gpu_name: str = str(torch.cuda.get_device_name(0)) if torch.cuda.is_available() else None
 
     clip_prompts: list[str] = field(default_factory=lambda: [
-        'a hand in front of the camera',
-        'a person in front of the camera',
+        'a person',
+        'a hand',
         'a chair',
         'a phone',
         'a door'
     ])
     clip_top_k_prompts: int = 3
 
-    sam_top_k_masks: int = 4
+    sam_top_k_masks: int = 3
