@@ -177,8 +177,16 @@ def ndarray_to_mask_candidate(mask: np.ndarray) -> MaskCandidate:
 
 def score_mask_candidate(candidate: MaskCandidate) -> float:
     """Compute a heuristic score for a valid mask candidate."""
-    area_score = 1.0 - abs(candidate.area_ratio - 0.30)
-    center_score = 1.0 - candidate.center_distance
+    # area_score = 1.0 - abs(candidate.area_ratio - 0.30)
+    area_score = min(candidate.area_ratio / 0.25, 0.45)
+
+    if candidate.center_distance <= 0.35:
+        center_score = 1.0
+    else:
+        center_score = max(0.0, 1.0 - (candidate.center_distance - 0.35) / 0.65)
+
+    # center_score = 1.0 - candidate.center_distance
+
     border_penalty = 0.25 if candidate.touches_border else 0.0
 
     return area_score + center_score - border_penalty
