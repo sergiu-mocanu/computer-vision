@@ -62,11 +62,12 @@ def is_scene_static(current_frame: np.ndarray, previous_frame: np.ndarray, thres
 def write_image_locally(config: AppConfig, frame: np.ndarray) -> None:
     """Save captured frame locally."""
     filename = f'snapshot_{int(time.time())}.jpg'
-    folder_path = AppConfig.saved_photos_folder
-    filepath = os.path.join(folder_path, filename)
 
+    folder_path = config.saved_photos_folder
     if not os.path.exists(folder_path):
         os.makedirs(config.saved_photos_folder)
+
+    filepath = os.path.join(folder_path, filename)
 
     cv2.imwrite(filename=filepath, img=frame)
     print(f'Saved {filepath}')

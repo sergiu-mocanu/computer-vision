@@ -13,6 +13,7 @@ from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
 from webcam_cv.pipeline.labeling_stage import select_best_image_prompts
 
 from webcam_cv.camera import Camera
+from webcam_cv.video.recorder import VideoRecorder
 from webcam_cv.display import draw_text, show, init_window
 from webcam_cv.image import write_image_locally, is_scene_static
 
@@ -31,6 +32,8 @@ def run_base_pipeline_app(config: AppConfig) -> None:
     # Initialize components (camera, model, anomaly scorer)
     # --------------------------------------------------------
     camera = Camera()
+
+    recorder: VideoRecorder | None = None
 
     init_window(config)
 
@@ -76,6 +79,13 @@ def run_base_pipeline_app(config: AppConfig) -> None:
         frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
+        if recorder is None and config.record_output:
+            h, w = display.shape[:2]
+            recorder = VideoRecorder(
+                config,
+                (w, h),
+            )
+
         key = cv2.waitKey(1) & 0xFF
 
         # --------------------------------------------------------
@@ -94,7 +104,7 @@ def run_base_pipeline_app(config: AppConfig) -> None:
         # Collect reference embeddings (normal scene modeling)
         # --------------------------------------------------------
         if key == ord('r'):
-            embeddings = detector.collect_normal_frames(config, camera)
+            embeddings = detector.collect_normal_frames(config, camera, recorder)
 
             scorer.fit_reference(embeddings)
             print('Reference embedding created')
@@ -144,10 +154,16 @@ def run_base_pipeline_app(config: AppConfig) -> None:
                     draw_text(display, f'Confidence: {best_score:.3f}', 190, scale=0.6)
                     draw_text(display, f'Classifier inference: {last_classifier_ms:.1f} ms', 220, scale=0.6)
 
+        if recorder is not None:
+            recorder.write(display)
+
         show(config, display)
 
         if key == ord('s'):
             write_image_locally(config, display)
+
+    if recorder is not None:
+        recorder.release()
 
     camera.release()
     cv2.destroyAllWindows()

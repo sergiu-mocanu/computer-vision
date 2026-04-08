@@ -7,6 +7,7 @@ from transformers import AutoImageProcessor, AutoModel
 
 from webcam_cv.config import AppConfig
 from webcam_cv.camera import Camera
+from webcam_cv.video.recorder import VideoRecorder
 from webcam_cv.display import draw_text, show
 from webcam_cv.models.base import BaseEmbedder, prepare_frame
 from webcam_cv.image import bgr_2_pil
@@ -61,7 +62,7 @@ class DinoV2Embedder(BaseEmbedder):
         return embedding.squeeze(0).detach().cpu()
 
 
-    def collect_normal_frames(self, config: AppConfig, camera: Camera) -> list[torch.Tensor]:
+    def collect_normal_frames(self, config: AppConfig, camera: Camera, recorder: VideoRecorder) -> list[torch.Tensor]:
         """Collect normal frames as a baseline for the anomaly measurement."""
         embeddings = []
         collected = 0
@@ -84,6 +85,9 @@ class DinoV2Embedder(BaseEmbedder):
                 f'Recording normal frames: {collected}/{config.normal_frames_target}',
                 30
             )
+            if recorder is not None:
+                recorder.write(ref_display)
+
             show(config, ref_display)
             cv2.waitKey(1)
 

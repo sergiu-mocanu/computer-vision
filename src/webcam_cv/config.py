@@ -6,7 +6,7 @@ import torch
 
 @dataclass
 class AppConfig:
-    app_mode: str = 'segmented_pipeline'
+    app_mode: str = 'base_pipeline'
 
     model_size: str = None
 
@@ -32,16 +32,19 @@ class AppConfig:
     gpu_name: str = str(torch.cuda.get_device_name(0)) if torch.cuda.is_available() else None
 
     clip_prompts: list[str] = field(default_factory=lambda: [
-        'a human face',
-        'human hair',
-        'a shirt',
-        'a hand',
-        'a chair',
-        'a phone',
-        'a door',
-        'an oven',
-        'a guitar amplifier'
+        'person in front of the camera',
+        'hand in front of the camera',
+        'shirt',
+        'chair',
+        'phone',
+        'door',
+        'oven',
+        'guitar amp',
+        'drinking glass'
     ])
     clip_top_k_prompts: int = 3
 
     sam_top_k_masks: int = 3
+
+    record_output: bool = False
+    record_output_fps: int = 25

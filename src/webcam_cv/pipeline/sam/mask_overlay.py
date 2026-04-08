@@ -17,13 +17,6 @@ def generate_distinct_colors(nb_colors: int) -> list[color]:
     return colors_rgb
 
 
-def overlay_mask(frame: np.ndarray, mask: np.ndarray) -> np.ndarray:
-    """Overlay a boolean mask on the frame."""
-    result = frame.copy()
-    result[mask] = (0.6 * result[mask] + 0.4 * np.array([0, 150, 0])).astype(np.uint8)
-    return result
-
-
 def draw_mask_metadata(frame: np.ndarray, candidate: MaskCandidate, rank: int, y: int) -> None:
     """Draw ranking metadata for a mask candidate on screen."""
     text = (

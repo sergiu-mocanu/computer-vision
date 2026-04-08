@@ -6,8 +6,9 @@ import cv2
 import numpy as np
 
 from webcam_cv.camera import Camera
+from webcam_cv.video.recorder import VideoRecorder
 from webcam_cv.config import AppConfig
-from webcam_cv.display import init_window, draw_text, show
+from webcam_cv.display import init_window, draw_text, show, draw_text_top_right, draw_label_line
 
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.image import write_image_locally, is_scene_static
@@ -64,6 +65,8 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
     # --------------------------------------------------------
     camera = Camera()
 
+    recorder: VideoRecorder | None = None
+
     init_window(config)
 
     detector_role = 'detector'
@@ -82,8 +85,10 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
     plval = PipelineValues()
 
     previous_frame: Optional[np.ndarray] = None
-    last_anomaly_processing: Optional[float] = None
-    anomaly_processing_delay_s = 4.0
+
+    now: float | None = None
+    next_seglabel_time: float | None = None
+    seglabel_delay_s: float = 4.0
 
     distinct_colors = generate_distinct_colors(config.sam_top_k_masks)
 
@@ -109,6 +114,13 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
         frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
+        if recorder is None and config.record_output:
+            h, w = display.shape[:2]
+            recorder = VideoRecorder(
+                config,
+                (w, h),
+            )
+
         key = cv2.waitKey(1) & 0xFF
 
         # --------------------------------------------------------
@@ -123,7 +135,7 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
             break
 
         if key == ord('r'):
-            embeddings = detector.collect_normal_frames(config, camera)
+            embeddings = detector.collect_normal_frames(config, camera, recorder)
             scorer.fit_reference(embeddings)
 
             plval.reset_latest_values()
@@ -142,22 +154,18 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
                 plval.last_detector_ms
             ) = score_frame_anomaly(detector, scorer, frame)
 
-            now = time.perf_counter()
-
             previous_frame = frame
 
-            should_run_sam_clip = False
+            now = time.perf_counter()
 
             if plval.latest_is_anomaly:
-                if last_anomaly_processing is None:
-                    should_run_sam_clip = True
-                    last_anomaly_processing = now
+                if now is None:
+                    break
 
-                elif now - last_anomaly_processing >= anomaly_processing_delay_s:
-                    should_run_sam_clip = True
-                    last_anomaly_processing = now
+                if next_seglabel_time is None:
+                    next_seglabel_time = now + seglabel_delay_s
 
-                if should_run_sam_clip:
+                if now >= next_seglabel_time:
                     plval.latest_ranked_masks, plval.last_segmenter_ms = generate_ranked_masks(config, segmenter, frame)
 
                     (
@@ -170,32 +178,60 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
                         prompts=config.clip_prompts,
                     )
 
+                    now = time.perf_counter()
+                    next_seglabel_time = now + seglabel_delay_s + 2
+
+            else:
+                next_seglabel_time = None
+                plval.reset_segmenter_classifier_values()
+
         if scorer.reference_embedding is None:
             draw_text(display, 'Status: no reference yet (press r)', 30)
 
         else:
             if plval.latest_score is not None:
                 if plval.latest_is_anomaly:
-
                     if plval.mask_prompt_sim is not None:
                         text_y = 60
 
                         for idx, (candidate, label, confidence) in enumerate(plval.mask_prompt_sim):
-                            draw_mask_bbox(display, candidate, distinct_colors[idx])
-                            draw_mask_center(display, candidate, idx+1, distinct_colors[idx])
+                            current_color = distinct_colors[idx]
 
-                            draw_text(display, f'Label #{idx+1}: {label} | '
-                                               f'Confidence: {confidence:.3f}', text_y, scale=0.6)
-                            # draw_text(display, f'Confidence: {confidence:.3f}', 500, scale=0.6)
+                            draw_mask_bbox(display, candidate, current_color)
+                            draw_mask_center(display, candidate, idx+1, current_color)
+
+                            draw_label_line(
+                                display,
+                                idx=idx + 1,
+                                label=label,
+                                confidence=confidence,
+                                y=text_y,
+                                label_color=current_color,
+                                scale=0.6,
+                            )
                             text_y += 30
 
                 status = 'ANOMALY' if plval.latest_is_anomaly else 'NORMAL'
                 draw_text(display, f'Status: {status}', 30)
 
+                if plval.latest_is_anomaly and next_seglabel_time is not None:
+                    remaining_time = max(0.0, next_seglabel_time - now)
+                    draw_text_top_right(
+                        display,
+                        f'Anomaly processing in {remaining_time:.2f}s',
+                        y=30
+                    )
+
+        if recorder is not None:
+            recorder.write(display)
+
         show(config, display)
 
         if key == ord('s'):
             write_image_locally(config, display)
+
+    if recorder is not None:
+        recorder.release()
 
     camera.release()
     cv2.destroyAllWindows()
