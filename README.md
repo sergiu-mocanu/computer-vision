@@ -4,12 +4,13 @@ Real-time computer vision prototype using a webcam to explore:
 
 - Visual anomaly detection (DINOv2)
 - Zero-shot image–text similarity (CLIP)
+- Image segmentation (SAM)
 
 ---
 
 ## Overview
 
-The application supports two independent modes:
+The application supports multiple independent and multimodel (pipeline) modes:
 
 ## 1. Anomaly Detection (DINOv2)
 
@@ -31,6 +32,10 @@ Temporal smoothing (EMA)
 Anomaly score
 ```
 
+### Example output
+
+![Anomaly overview](assets/images/anomaly-detection.jpg)
+
 ## 2. Semantic Labeling (CLIP)
 
 Scores how well the current frame matches predefined text prompts (text-image similarity).
@@ -39,7 +44,7 @@ Example prompts:
 
 - a hand in front of the camera
 - a person in front of the camera
-- an empty chair
+- a chair
 - a mirror
 
 Output:
@@ -47,8 +52,28 @@ Output:
 - Confidence score
 - Top-k ranked prompts
 
+Note: prompts can be edited, added or removed manually in `webcam_cv/config.py` under `clip_prompts`
 
-## 3. Pipeline Mode (Anomaly → Semantic Labeling)
+### Example output
+
+![Labeling overview](assets/images/text-image-similarity.jpg)
+
+## 3. Image Segmentation Mode (SAM)
+
+Select top-k regions from a frozen image.
+
+### Heuristics
+The current SAM integration uses lightweight heuristics to improve mask selection, including:
+
+- area-based filtering and ranking
+- center-priority scoring
+- duplicate / contained-mask suppression
+
+### Example output
+
+![Segmentation overview](assets/images/image-segmentation.jpg)
+
+## 4. Base Pipeline Mode (Anomaly → Semantic Labeling)
 
 Combine `anomaly detection` + `image labeling` to reduce computational cost:
 
@@ -74,18 +99,56 @@ CLIP (image–text similarity)
 Semantic label + confidence
 ```
 
-## 4. Image Segmentation Mode (SAM)
+## 5. Segmented Pipeline Mode (Anomaly → Localization → Semantic Labeling)
 
-Select top-k regions from a frozen image.
+Combine `anomaly detection` + `segmentation` + `cropped labeling` to localize and describe the anomalous region:
+
+- Capture, compute and label a normal scene
+- Use DINOv2 to detect anomalies
+- Use SAM to generate and rank candidate regions only when an anomaly is detected
+- Use CLIP on the best candidate regions to assign a semantic label
+
+```angular2html
+Webcam frame
+    ↓
+DINOv2 embedding (ViT)
+    ↓
+Reference comparison (cosine distance)
+    ↓
+Temporal smoothing (EMA)
+    ↓
+Anomaly score
+    ↓
+[if anomaly detected]
+    ↓
+SAM (automatic mask generation)
+    ↓
+Heuristic mask filtering / ranking
+    ↓
+Top-k candidate regions
+    ↓
+CLIP on cropped candidate regions
+    ↓
+Best region + semantic label + confidence
+```
+
+### Example output
+
+![Segmented pipeline demo](assets/gifs/segmented-pipeline-demo.gif)
 
 ---
 
 ## Features
-- Real-time webcam inference (OpenCV)
-- Vision Transformer embeddings (DINOv2)
-- Zero-shot multimodal reasoning (CLIP)
-- Configurable runtime behavior
-- GPU acceleration (PyTorch + CUDA)
+
+- Real-time video processing from webcam streams (OpenCV)
+- Anomaly detection using Vision Transformer embeddings (DINOv2)
+- Zero-shot semantic labeling via multimodal models (CLIP)
+- Automatic segmentation and region proposal (SAM)
+- Multi-stage pipeline: anomaly detection → localization → semantic interpretation
+- Lightweight heuristic filtering and ranking of candidate regions
+- Configurable pipeline behavior (thresholds, delays, modes)
+- GPU-accelerated inference (PyTorch + CUDA)
+- Optional recording of annotated inference sessions
 
 ---
 
@@ -97,24 +160,35 @@ src/webcam_cv/
 ├── config.py
 ├── camera.py
 ├── display.py
+├── image.py
+├── recorder.py
 ├── models/
 │   ├── base.py
 │   ├── dinov2_embedder.py
 │   ├── clip_embedder.py
+│   ├── sam_segmenter.py
 │   ├── factory.py
 │   └── registry.py
 ├── app_modes/
 │   ├── anomaly_app.py
 │   ├── labeling_app.py.py
-│   ├── pipeline_app.py
-│   ├── seggmentation_app.py
+│   ├── segmentation_app.py
+│   ├── base_pipeline_app.py
+│   ├── segmented_pipeline_app.py
 │   └── mode_registry.py
-├── anomaly/
-│   └── scorer.py
+├── pipeline/
+│   ├── anomaly_stage
+│   ├── labeling_stage
+│   ├── segmentation_stage
+│   ├── dino/
+│   │   └── anomaly_scorer
+│   ├── sam/
+│   │   ├── crop_utils
+│   │   ├── mask_candidate
+│   │   ├── mask_ranker
+│   │   └── mask_overlay
 ├── experiments
-│   └── resolution_benchmark.py
-└── utils/
-    └── image.py
+└── └── resolution_benchmark.py
 ```
 
 ---
@@ -165,7 +239,7 @@ Edit `config.py`
 ### Select app mode
 
 ```python
-model_type = 'anomaly'  # or 'labeling', 'pipeline'
+model_type = 'anomaly'  # or 'labeling', 'base_pipeline'
 model_size = 'base'  # or 'None'
 ```
 
@@ -173,7 +247,7 @@ model_size = 'base'  # or 'None'
 
 ## Controls
 
-### Anomaly mode | Pipeline mode
+### Anomaly mode | Base Pipeline mode | Segmented Pipeline mode
 
 | Key | Action                  |
 |-----|-------------------------|
@@ -208,17 +282,7 @@ model_size = 'base'  # or 'None'
 |--------|--------------------|-----------------------------|
 | dinov2 | small, base, large | visual embeddings / anomaly |
 | clip   | base, large        | image–text similarity       |
-
----
-
-## Current limitations
-
-This is an early prototype.
-
-Limitations include:
-- Frame-level anomaly detection (no localization)
-- Fixed prompt list for labeling
-- Threshold tuning is manual
+| sam    | base, large, huge  | image segmentation          |
 
 ---
 
