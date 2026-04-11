@@ -7,7 +7,7 @@ from transformers import AutoImageProcessor, AutoModel
 
 from webcam_cv.config import AppConfig
 from webcam_cv.camera import Camera
-from webcam_cv.video.recorder import VideoRecorder
+from webcam_cv.recorder import VideoRecorder
 from webcam_cv.display import draw_text, show
 from webcam_cv.models.base import BaseEmbedder, prepare_frame
 from webcam_cv.image import bgr_2_pil

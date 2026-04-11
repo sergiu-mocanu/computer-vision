@@ -4,9 +4,19 @@ import os
 import torch
 
 
+def adapt_prompts(prompts: list[str]) -> list[str]:
+    """Create an adapted list of prompts for the segmented_pipeline mode."""
+    mapping = {
+        'person in front of the camera': 'face',
+        'hand in front of the camera': 'hand'
+    }
+
+    return [mapping.get(p, p) for p in prompts]
+
+
 @dataclass
 class AppConfig:
-    app_mode: str = 'base_pipeline'
+    app_mode: str = 'segmented_pipeline'
 
     model_size: str = None
 
@@ -43,6 +53,9 @@ class AppConfig:
         'drinking glass'
     ])
     clip_top_k_prompts: int = 3
+
+    def __post_init__(self) -> None:
+        self.seg_pipe_prompts = adapt_prompts(self.clip_prompts)
 
     sam_top_k_masks: int = 3
 

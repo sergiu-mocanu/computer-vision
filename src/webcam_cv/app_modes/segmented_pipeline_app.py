@@ -1,21 +1,20 @@
 import time
-from typing import cast, Optional
+from typing import cast
 from dataclasses import dataclass, field
 
 import cv2
 import numpy as np
 
-from webcam_cv.camera import Camera
-from webcam_cv.video.recorder import VideoRecorder
 from webcam_cv.config import AppConfig
+from webcam_cv.camera import Camera
+from webcam_cv.recorder import VideoRecorder, ensure_recorder
 from webcam_cv.display import init_window, draw_text, show, draw_text_top_right, draw_label_line
+from webcam_cv.image import write_image_locally, is_scene_static
 
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
-from webcam_cv.image import write_image_locally, is_scene_static
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.models.dinov2_embedder import DinoV2Embedder
-from webcam_cv.models.sam_segmenter import SamSegmenter
 
 from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
 from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
@@ -27,9 +26,9 @@ from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
 
 @dataclass
 class PipelineValues:
-    latest_score: Optional[float] = None
+    latest_score: float | None = None
     latest_is_anomaly = False
-    mask_prompt_sim: Optional[tuple[MaskCandidate, str, float]] = None
+    mask_prompt_sim: tuple[MaskCandidate, str, float] | None = None
     latest_ranked_masks: list[MaskCandidate] = field(default_factory=list)
 
     last_detector_ms = 0.0
@@ -75,7 +74,7 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
 
     mode_spec = MODE_REGISTRY[config.app_mode]
     detector = cast(DinoV2Embedder, create_model_from_spec(config, mode_spec, detector_role))
-    segmenter = cast(SamSegmenter, create_model_from_spec(config, mode_spec, segmenter_role))
+    segmenter = create_model_from_spec(config, mode_spec, segmenter_role)
     classifier = cast(ClipEmbedder, create_model_from_spec(config, mode_spec, classifier_role))
 
     scorer = AnomalyScorer(config)
@@ -84,13 +83,13 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
 
     plval = PipelineValues()
 
-    previous_frame: Optional[np.ndarray] = None
+    previous_frame: np.ndarray | None = None
 
     now: float | None = None
     next_seglabel_time: float | None = None
     seglabel_delay_s: float = 4.0
 
-    distinct_colors = generate_distinct_colors(config.sam_top_k_masks)
+    distinct_colors = generate_distinct_colors(config.sam_top_k_masks, exclude_text_color=True)
 
     print(f'Running Segmented Pipeline mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Detector: {detector.model_name}')
@@ -114,12 +113,7 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
         frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
-        if recorder is None and config.record_output:
-            h, w = display.shape[:2]
-            recorder = VideoRecorder(
-                config,
-                (w, h),
-            )
+        recorder = ensure_recorder(config, recorder, display)
 
         key = cv2.waitKey(1) & 0xFF
 
@@ -145,7 +139,7 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
                 and frame_index % config.inference_frame_stride == 0):
 
             if previous_frame is not None:
-                if is_scene_static(frame, previous_frame, threshold=2):
+                if is_scene_static(frame, previous_frame) and not plval.latest_is_anomaly:
                     continue
 
             (
@@ -159,9 +153,6 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
             now = time.perf_counter()
 
             if plval.latest_is_anomaly:
-                if now is None:
-                    break
-
                 if next_seglabel_time is None:
                     next_seglabel_time = now + seglabel_delay_s
 
@@ -175,7 +166,7 @@ def run_segmented_pipeline_app(config: AppConfig) -> None:
                         classifier=classifier,
                         frame_bgr=frame,
                         mask_candidates=plval.latest_ranked_masks,
-                        prompts=config.clip_prompts,
+                        prompts=config.seg_pipe_prompts,
                     )
 
                     now = time.perf_counter()

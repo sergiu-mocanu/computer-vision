@@ -1,19 +1,19 @@
-from typing import cast, Optional
+from typing import cast
 
 import cv2
 import numpy as np
 
 from webcam_cv.config import AppConfig
+from webcam_cv.camera import Camera
+from webcam_cv.recorder import VideoRecorder, ensure_recorder
+from webcam_cv.display import draw_text, show, init_window
+from webcam_cv.image import is_scene_static, write_image_locally
+
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
 from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
-
-from webcam_cv.camera import Camera
-from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.image import is_scene_static, write_image_locally
-from webcam_cv.video.recorder import VideoRecorder
 
 
 def run_anomaly_app(config: AppConfig) -> None:
@@ -38,7 +38,7 @@ def run_anomaly_app(config: AppConfig) -> None:
     scorer = AnomalyScorer(config)
 
     frame_index = 0
-    previous_frame: Optional[np.ndarray] = None
+    previous_frame: np.ndarray | None = None
 
     score = None
     is_anomaly = False
@@ -64,18 +64,13 @@ def run_anomaly_app(config: AppConfig) -> None:
         frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
-        if recorder is None and config.record_output:
-            h, w = display.shape[:2]
-            recorder = VideoRecorder(
-                config,
-                (w, h),
-            )
+        recorder = ensure_recorder(config, recorder, display)
+
+        key = cv2.waitKey(1) & 0xFF
 
         # --------------------------------------------------------
         # Handle user input (record reference, save frame, etc.)
         # --------------------------------------------------------
-        key = cv2.waitKey(1) & 0xFF
-
         if key == ord('c'):
             scorer.clear()
             print('Reference cleared')

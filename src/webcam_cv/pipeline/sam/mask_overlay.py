@@ -7,11 +7,17 @@ from webcam_cv.pipeline.sam.mask_candidate import MaskCandidate
 
 
 color = tuple[int, int, int]
+text_color = (200, 0, 200)
 
 
-def generate_distinct_colors(nb_colors: int) -> list[color]:
+def generate_distinct_colors(nb_colors: int, exclude_text_color: bool = False) -> list[color]:
     """Generate visually distinct colors for mask contour overlay."""
-    colors = distinctipy.get_colors(nb_colors)
+    if exclude_text_color:
+        excluded = [text_color]
+    else:
+        excluded = None
+
+    colors = distinctipy.get_colors(nb_colors, exclude_colors=excluded)
     colors_rgb = [(int(r * 255), int(g * 255), int(b * 255)) for r, g, b in colors]
 
     return colors_rgb
@@ -33,7 +39,7 @@ def draw_mask_metadata(frame: np.ndarray, candidate: MaskCandidate, rank: int, y
         (20, y),
         cv2.FONT_HERSHEY_SIMPLEX,
         0.5,
-        (200, 0, 200),
+        text_color,
         1,
         cv2.LINE_AA,
     )

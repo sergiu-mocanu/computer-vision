@@ -1,17 +1,18 @@
-from typing import Optional, cast
+from typing import cast
 
 import cv2
 import numpy as np
 
 from webcam_cv.config import AppConfig
+from webcam_cv.camera import Camera
+from webcam_cv.recorder import VideoRecorder, ensure_recorder
+from webcam_cv.display import draw_text, show, init_window
+from webcam_cv.image import is_scene_static, write_image_locally
+
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.pipeline.labeling_stage import select_best_image_prompts
-
-from webcam_cv.camera import Camera
-from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.image import is_scene_static, write_image_locally
 
 
 def run_labelling_app(config: AppConfig) -> None:
@@ -27,6 +28,8 @@ def run_labelling_app(config: AppConfig) -> None:
     # --------------------------------------------------------
     camera = Camera()
 
+    recorder: VideoRecorder | None = None
+
     init_window(config)
 
     mode_spec = MODE_REGISTRY[config.app_mode]
@@ -35,9 +38,9 @@ def run_labelling_app(config: AppConfig) -> None:
     frame_index = 0
     last_infer_ms = 0.0
     prompt_scores: list[tuple[str, float]] = []
-    best_prompt: Optional[str] = None
-    best_score: Optional[str] = None
-    previous_frame: Optional[np.ndarray] = None
+    best_prompt: str | None = None
+    best_score: str | None = None
+    previous_frame: np.ndarray | None = None
 
     print(f'Running Labeling mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
     print(f'Model: {embedder.model_name}\n')
@@ -56,6 +59,8 @@ def run_labelling_app(config: AppConfig) -> None:
 
         frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
+
+        recorder = ensure_recorder(config, recorder, display)
 
         key = cv2.waitKey(1) & 0xFF
 
@@ -89,10 +94,16 @@ def run_labelling_app(config: AppConfig) -> None:
                 draw_text(display, f'{prompt}: {score:.3f}', y, scale=0.6)
                 y += 20
 
+        if recorder is not None:
+            recorder.write(display)
+
         show(config, display)
 
         if key == ord('s'):
             write_image_locally(config, display)
+
+    if recorder is not None:
+        recorder.release()
 
     camera.release()
     cv2.destroyAllWindows()

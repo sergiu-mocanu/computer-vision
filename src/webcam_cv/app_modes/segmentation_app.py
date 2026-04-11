@@ -1,18 +1,15 @@
-from typing import cast, Optional
-
 import cv2
 import numpy as np
 
 from webcam_cv.config import AppConfig
-from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
-from webcam_cv.models.factory import create_model_from_spec
-from webcam_cv.models.sam_segmenter import SamSegmenter
-from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
-
 from webcam_cv.camera import Camera
 from webcam_cv.pipeline.sam.mask_overlay import draw_masks
 from webcam_cv.image import write_image_locally
 from webcam_cv.display import init_window, draw_text, show
+
+from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
+from webcam_cv.models.factory import create_model_from_spec
+from webcam_cv.pipeline.segmentation_stage import generate_ranked_masks
 
 
 def run_segmentation_app(config: AppConfig) -> None:
@@ -26,11 +23,11 @@ def run_segmentation_app(config: AppConfig) -> None:
     init_window(config)
 
     mode_spec = MODE_REGISTRY[config.app_mode]
-    segmenter = cast(SamSegmenter, create_model_from_spec(config, mode_spec))
+    segmenter = create_model_from_spec(config, mode_spec)
 
-    frame: Optional[np.ndarray] = None
-    frozen_frame: Optional[np.ndarray] = None
-    preview_frame: Optional[np.ndarray] = None
+    frame: np.ndarray | None = None
+    frozen_frame: np.ndarray | None = None
+    preview_frame: np.ndarray | None = None
     last_infer_ms = 0.0
 
     print(f'Running Segmentation mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
@@ -48,12 +45,8 @@ def run_segmentation_app(config: AppConfig) -> None:
     while True:
         if frozen_frame is None:
             ok, frame = camera.read(config)
-            if frame is None:
-                break
             display = frame.copy()
         else:
-            if preview_frame is None:
-                break
             display = preview_frame.copy()
 
         key = cv2.waitKey(1) & 0xFF
@@ -75,12 +68,8 @@ def run_segmentation_app(config: AppConfig) -> None:
         # Run inference, segment and rank areas of the image
         # --------------------------------------------------------
         if key == ord('f') and frozen_frame is None:
-            if frame is None:
-                break
             frozen_frame = frame.copy()
 
-            if frozen_frame is None:
-                break
             ranked_masks, last_infer_ms = generate_ranked_masks(config, segmenter, frozen_frame)
 
             text_y = 25
@@ -98,8 +87,6 @@ def run_segmentation_app(config: AppConfig) -> None:
         if frozen_frame is None:
             show(config, display)
         else:
-            if preview_frame is None:
-                break
             show(config, preview_frame)
 
     camera.release()

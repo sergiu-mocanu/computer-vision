@@ -1,9 +1,14 @@
-from typing import Optional, cast
+from typing import cast
 
 import cv2
 import numpy as np
 
 from webcam_cv.config import AppConfig
+from webcam_cv.camera import Camera
+from webcam_cv.recorder import VideoRecorder, ensure_recorder
+from webcam_cv.display import draw_text, show, init_window
+from webcam_cv.image import write_image_locally, is_scene_static
+
 from webcam_cv.app_modes.mode_registry import MODE_REGISTRY
 from webcam_cv.models.factory import create_model_from_spec
 from webcam_cv.pipeline.dino.anomaly_scorer import AnomalyScorer
@@ -11,11 +16,6 @@ from webcam_cv.models.dinov2_embedder import DinoV2Embedder
 from webcam_cv.models.clip_embedder import ClipEmbedder
 from webcam_cv.pipeline.anomaly_stage import score_frame_anomaly
 from webcam_cv.pipeline.labeling_stage import select_best_image_prompts
-
-from webcam_cv.camera import Camera
-from webcam_cv.video.recorder import VideoRecorder
-from webcam_cv.display import draw_text, show, init_window
-from webcam_cv.image import write_image_locally, is_scene_static
 
 
 def run_base_pipeline_app(config: AppConfig) -> None:
@@ -47,15 +47,15 @@ def run_base_pipeline_app(config: AppConfig) -> None:
     scorer = AnomalyScorer(config)
 
     frame_index = 0
-    previous_frame: Optional[np.ndarray] = None
+    previous_frame: np.ndarray | None = None
     last_detector_ms = 0.0
     last_classifier_ms = 0.0
 
     score = None
     is_anomaly = False
 
-    best_prompt: Optional[str] = None
-    best_score: Optional[str] = None
+    best_prompt: str | None = None
+    best_score: str | None = None
 
     print('Mode: pipeline')
     print(f'Running Base Pipeline mode on device: {config.gpu_name if config.gpu_name else 'CPU'}')
@@ -79,12 +79,7 @@ def run_base_pipeline_app(config: AppConfig) -> None:
         frame_index = (frame_index + 1) % config.inference_frame_stride
         display = frame.copy()
 
-        if recorder is None and config.record_output:
-            h, w = display.shape[:2]
-            recorder = VideoRecorder(
-                config,
-                (w, h),
-            )
+        recorder = ensure_recorder(config, recorder, display)
 
         key = cv2.waitKey(1) & 0xFF
 

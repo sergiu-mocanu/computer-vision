@@ -4,7 +4,8 @@ import numpy as np
 from webcam_cv.config import AppConfig
 
 
-generic_text_color = (200, 0, 200)
+text_color = (200, 0, 200)
+
 
 def init_window(config: AppConfig) -> None:
     """Initialize display window."""
@@ -19,7 +20,7 @@ def draw_text(frame: np.ndarray, text: str, y: int, scale: float = 0.6) -> None:
                 (20, y),
                 cv2.FONT_HERSHEY_SIMPLEX,
                 scale,
-                generic_text_color,
+                text_color,
                 2,
                 cv2.LINE_AA
                 )
@@ -41,7 +42,7 @@ def draw_text_top_right(frame: np.ndarray, text: str, y: int, scale: float = 0.7
         (x, y),
         cv2.FONT_HERSHEY_SIMPLEX,
         scale,
-        generic_text_color,
+        text_color,
         2,
         cv2.LINE_AA,
     )
@@ -83,7 +84,7 @@ def draw_label_line(
         (x + prefix_width, y),
         font,
         scale,
-        generic_text_color,
+        text_color,
         thickness,
         cv2.LINE_AA,
     )
