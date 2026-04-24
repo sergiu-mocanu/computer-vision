@@ -2,6 +2,9 @@ opencv-python
 torch
 torchvision
 transformers
+onnx
+onnxruntime
+onnxscript
 pillow
 numpy
 distinctipy

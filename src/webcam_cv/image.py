@@ -31,7 +31,7 @@ def reduce_res(frame: np.ndarray, max_width: int) -> np.ndarray:
     """Reduce image resolution while keeping the aspect ratio.
 
     Reducing the resolution saves computational resources.
-    Keeping the aspect ratio avoid distortion in object proportions.
+    Keeping the aspect ratio avoids distortion in object proportions.
     """
     h, w = frame.shape[:2]
 
